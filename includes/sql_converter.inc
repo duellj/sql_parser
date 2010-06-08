@@ -20,7 +20,6 @@ class SqlConverter {
     if (!is_array($this->parsed_sql)) {
       return;
     }
-    dpm($this->parsed_sql);
     switch ($this->parsed_sql['command']) {
       case 'select':
         $this->convertSelect();
