@@ -41,12 +41,12 @@ class SqlDialect {
 
   //  isType()
   function isType($token) {
-    return isset($this->types[$token]);
+    return in_array($token, $this->types);
   }
 
   //  isFunc()
   function isFunc($token) {
-    return isset($this->functions[$token]);
+    return in_array($token, $this->functions);
   }
 
   //  isCommand()
@@ -56,7 +56,7 @@ class SqlDialect {
 
   //  isReserved()
   function isReserved($token) {
-    return in_array($token, $this->symbols);
+    return isset($this->symbols[$token]);
   }
 
   //  isOperator()

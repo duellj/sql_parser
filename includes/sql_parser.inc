@@ -18,37 +18,14 @@
  * @todo Extract symbols into SqlDialect.
  * @todo Table aliases are not parsing.
  * @todo Provide sane exception handling in raiseError().
+ * @todo Parse multiple SQL strings.
  */
 class SqlParser {
   var $lexer;
   var $token;
   var $dialect;
 
-  // symbol definitions
-  var $symbols = array();
-  var $commands = array('alter', 'create', 'drop', 'select', 'delete', 'insert', 'update');
-
-  var $operators = array('=', '!=', '<>', '<', '<=', '>', '>=', 'like', 'clike', 'slike', 'not', 'is', 'in', 'between', 'and', 'or');
-
-  var $types = array('character', 'char', 'varchar', 'nchar', 'bit', 'numeric', 'decimal', 'dec', 'integer', 'int', 'smallint', 'float', 'real', 'double', 'date', 'time', 'timestamp', 'interval', 'bool', 'boolean', 'set', 'enum', 'text');
-
-  var $conjunctions = array('by', 'as', 'on', 'into', 'from', 'where', 'with');
-
-  var $functions = array('avg', 'count', 'max', 'min', 'sum', 'nextval', 'currval', 'concat');
-
-  var $reserved = array('absolute', 'action', 'add', 'all', 'allocate', 'and', 'any', 'are', 'asc', 'ascending', 'assertion', 'at', 'authorization', 'begin', 'bit_length', 'both', 'cascade', 'cascaded', 'case', 'cast', 'catalog', 'char_length', 'character_length', 'check', 'close', 'coalesce', 'collate', 'collation', 'column', 'commit', 'connect', 'connection', 'constraint', 'constraints', 'continue', 'convert', 'corresponding', 'cross', 'current', 'current_date', 'current_time', 'current_timestamp', 'current_user', 'cursor', 'day', 'deallocate', 'declare', 'default', 'deferrable', 'deferred', 'desc', 'descending', 'describe', 'descriptor', 'diagnostics', 'disconnect', 'distinct', 'domain', 'else', 'end', 'end-exec', 'escape', 'except', 'exception', 'exec', 'execute', 'exists', 'external', 'extract', 'false', 'fetch', 'first', 'for', 'foreign', 'found', 'full', 'get', 'global', 'go', 'goto', 'grant', 'group', 'having', 'hour', 'identity', 'immediate', 'indicator', 'initially', 'inner', 'input', 'insensitive', 'intersect', 'isolation', 'join', 'key', 'language', 'last', 'leading', 'left', 'level', 'limit', 'local', 'lower', 'match', 'minute', 'module', 'month', 'names', 'national', 'natural', 'next', 'no', 'null', 'nullif', 'octet_length', 'of', 'only', 'open', 'option', 'or', 'order', 'outer', 'output', 'overlaps', 'pad', 'partial', 'position', 'precision', 'prepare', 'preserve', 'primary', 'prior', 'privileges', 'procedure', 'public', 'read', 'references', 'relative', 'restrict', 'revoke', 'right', 'rollback', 'rows', 'schema', 'scroll', 'second', 'section', 'session', 'session_user', 'size', 'some', 'space', 'sql', 'sqlcode', 'sqlerror', 'sqlstate', 'substring', 'system_user', 'table', 'temporary', 'then', 'timezone_hour', 'timezone_minute', 'to', 'trailing', 'transaction', 'translate', 'translation', 'trim', 'true', 'union', 'unique', 'unknown', 'upper', 'usage', 'user', 'using', 'value', 'values', 'varying', 'view', 'when', 'whenever', 'work', 'write', 'year', 'zone', 'eoc');
-
-  var $synonyms = array('decimal' => 'numeric', 'dec' => 'numeric', 'numeric' => 'numeric', 'float' => 'float', 'real' => 'real', 'double' => 'real', 'int' => 'int', 'integer' => 'int', 'interval' => 'interval', 'smallint' => 'smallint', 'timestamp' => 'timestamp', 'bool' => 'bool', 'boolean' => 'bool', 'set' => 'set', 'enum' => 'enum', 'text' => 'text', 'char' => 'char', 'character' => 'char', 'varchar' => 'varchar', 'ascending' => 'asc', 'asc' => 'asc', 'descending' => 'desc', 'desc' => 'desc', 'date' => 'date', 'time' => 'time');
-
   function __construct($string = NULL) {
-    $this->symbols = array_flip(array_merge(
-      $this->types,
-      $this->functions,
-      $this->operators,
-      $this->commands,
-      $this->reserved,
-      $this->conjunctions
-    ));
     $this->dialect = new SqlDialect();
 
     if (is_string($string)) {
@@ -70,7 +47,7 @@ class SqlParser {
     $types = array();
     while ($this->token != ')') {
       $this->getTok();
-      if ($this->isVal() || ($this->token == 'ident')) {
+      if ($this->dialect->isVal($this->token) || ($this->token == 'ident')) {
         $values[] = $this->lexer->tokText;
         $types[] = $this->token;
       } 
@@ -112,40 +89,6 @@ class SqlParser {
     return FALSE; //PEAR::raiseError($message);
   }
     
-  // isType()
-  function isType() {
-    return isset($this->types[$this->token]);
-  }
-    
-  // isVal()
-  function isVal() {
-    return (($this->token == 'real_val') ||
-      ($this->token == 'int_val') ||
-      ($this->token == 'text_val') ||
-      ($this->token == 'placeholder') ||
-      ($this->token == 'NULL'));
-  }
-    
-  // isFunc()
-  function isFunc() {
-    return in_array($this->token, $this->functions);
-  }
-    
-  // isCommand()
-  function isCommand() {
-    return in_array($this->token, $this->commands);
-  }
-
-  // isReserved()
-  function isReserved() {
-    return isset($this->symbols[$this->token]);
-  }
-
-  // isOperator()
-  function isOperator() {
-    return in_array($this->token, $this->operators);
-  }
-    
   // getTok()
   function getTok() {
     $this->token = $this->lexer->lex();
@@ -174,13 +117,13 @@ class SqlParser {
           break;
         case 'default':
           $this->getTok();
-          if ($this->isVal()) {
+          if ($this->dialect->isVal($this->token)) {
             $constraintOpts = array(
               'type' => 'default_value',
               'value' => $this->lexer->tokText,
             );
           }
-          elseif ($this->isFunc()) {
+          elseif ($this->dialect->isFunc($this->token)) {
             $results = $this->parseFunctionOpts();
             //if (PEAR::isError($results)) {
             //return $results;
@@ -332,11 +275,11 @@ class SqlParser {
       }
       $foundSubclause = TRUE;
     } 
-    elseif ($this->isFunc()) {
+    elseif ($this->dialect->isFunc($this->token)) {
       $clause['arg_1']['value'] = $this->parseFunctionOpts();
       $clause['arg_1']['type'] = 'function';
     }
-    elseif ($this->isReserved()) {
+    elseif ($this->dialect->isReserved($this->token)) {
       return $this->raiseError('Expected a column name or value');
     } 
     else {
@@ -347,7 +290,7 @@ class SqlParser {
     // parse the operator
     if (!$foundSubclause) {
       $this->getTok();
-      if (!$this->isOperator()) {
+      if (!$this->dialect->isOperator($this->token)) {
         return $this->raiseError('Expected an operator');
       }
       $clause['op'] = $this->token;
@@ -410,7 +353,7 @@ class SqlParser {
           break;
         default:
           // parse for in-fix binary operators
-          if ($this->isReserved()) {
+          if ($this->dialect->isReserved($this->token)) {
             return $this->raiseError('Expected a column name or value');
           }
           if ($this->token == '(') {
@@ -470,7 +413,7 @@ class SqlParser {
 
       // parse field type
       $this->getTok();
-      if ($this->isType($this->token)) {
+      if ($this->dialect->isType($this->token)) {
         $type = $this->token;
       } 
       else {
@@ -622,7 +565,7 @@ class SqlParser {
 
     // check for an alias, from, or operator
     $this->getTok();
-    if ($this->token == ',' || $this->token == 'from' || $this->isOperator()) {
+    if ($this->token == ',' || $this->token == 'from' || $this->dialect->isOperator($this->token)) {
       $this->lexer->pushBack();
     } 
     elseif ($this->token == 'as') {
@@ -760,7 +703,7 @@ class SqlParser {
         return $this->raiseError('Expected =');
       }
       $this->getTok();
-      if (!$this->isVal($this->token)) {
+      if (!$this->dialect->isVal($this->token)) {
         return $this->raiseError('Expected a value');
       }
       $tree['values'][] = array('value' => $this->lexer->tokText,
@@ -853,7 +796,7 @@ class SqlParser {
       $tree['column_names'][] = '*';
       $this->getTok();
     } 
-    elseif ($this->token == 'ident' || $this->isFunc()) {
+    elseif ($this->token == 'ident' || $this->dialect->isFunc($this->token)) {
       while ($this->token != 'from') {
         if ($this->token == 'ident') {
           list($columnTable, $columnName) = explode(".", $this->lexer->tokText);
@@ -889,7 +832,7 @@ class SqlParser {
             $this->getTok();
           }
         }
-        elseif ($this->isFunc()) {
+        elseif ($this->dialect->isFunc($this->token)) {
           if (!isset($tree['set_quantifier'])) {
             $result = $this->parseFunctionOpts();
             //if (PEAR::isError($result)) {
@@ -1131,6 +1074,10 @@ class SqlParser {
           $clause = $this->parseSearchClause();
           $tree['having_clause'] = $clause;
           break;
+        case ';':
+          // @todo: handle multiple sql strings.
+          $this->getTok();
+          continue;
         default:
           return $this->raiseError('Unexpected clause');
       }
