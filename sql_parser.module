@@ -1,0 +1,66 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Provides parsing ability from sql strings into Drupal DBTNG objects.
+ */
+
+/**
+ * Implements hook_menu.
+ */
+function sql_parser_menu() {
+  $items['sql-parser'] = array(
+    'title' => 'SQL Parser',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sql_parser_parser_form'),
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Page Callback.
+ */
+function sql_parser_parser_form(&$form_state) {
+  if ($form_state['post']['sql']) {
+    $parsed_sql = sql_parser_parse($form_state['post']['sql']);
+    $query_string = sql_parser_convert($parsed_sql);
+  }
+  $form['sql'] = array(
+    '#title' => 'Original SQL String',
+    '#type' => 'textarea',
+    '#default_value' => $form_state['post']['sql'],
+  );
+  $form['output'] = array(
+    '#title' => 'Database Object',
+    '#type' => 'textarea',
+    '#rows' => 10,
+    '#attributes' => array(
+      'readonly' => 'readonly',
+    ),
+    '#value' => $query_string,
+  );
+  $form['submit'] = array(
+    '#type' => 'button',
+    '#value' => t('Convert'),
+  );
+  return $form;
+}
+
+function sql_parser_parse($sql) {
+  module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
+  module_load_include('inc', 'sql_parser', 'includes/sql_lexer');
+  module_load_include('inc', 'sql_parser', 'includes/sql_parser');
+
+  $parser = new SqlParser($sql);
+  return $parser->parse();
+}
+
+function sql_parser_convert($parsed_sql) {
+  module_load_include('inc', 'sql_parser', 'includes/sql_converter');
+
+  $converter = new SqlConverter($parsed_sql);
+  return $converter->convert();
+}

@@ -1,0 +1,4 @@
+; $Id$
+name = SQL Parser
+description = Parser SQL strings into Drupal database objects.
+core = 6.x
