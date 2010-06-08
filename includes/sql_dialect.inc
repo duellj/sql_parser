@@ -63,4 +63,12 @@ class SqlDialect {
   function isOperator($token) {
     return in_array($token, $this->operators);
   }
+
+  function isSynonym($token) {
+    return isset($this->synonyms[$token]);
+  }
+
+  function getSynonym($token) {
+    return $this->synonyms[$token];
+  }
 }

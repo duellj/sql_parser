@@ -64,7 +64,7 @@ class SqlConverter {
 
     if ($this->parsed_sql['sort_order']) {
       foreach ($this->parsed_sql['sort_order'] as $field => $order) {
-        $this->output[] = "\t->orderBy($field, $order)";
+        $this->output[] = "\t->orderBy('$field', '$order')";
       }
     } 
 

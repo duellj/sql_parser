@@ -439,7 +439,7 @@ class SqlParser {
           return $this->raiseError('Unexpected token');
         }
       }
-      $fields[$name]['type'] = $this->synonyms[$type];
+      $fields[$name]['type'] = $this->dialect->getSynonym($type);
       // parse type parameters
       if ($this->token == '(') {
         $results = $this->getParams($values, $types);
@@ -937,7 +937,7 @@ class SqlParser {
         $this->getTok();
       } 
       elseif (($this->token == 'cross') || ($this->token == 'inner')) {
-        $join = $this->lexer->tokText;
+        $join = strtolower($this->lexer->tokText);
         $this->getTok();
         if ($this->token != 'join') {
           return $this->raiseError('Expected token "join"');
@@ -1019,8 +1019,8 @@ class SqlParser {
           while ($this->token == 'ident') {
             $col = $this->lexer->tokText;
             $this->getTok();
-            if (isset($this->synonyms[$this->token])) {
-              $order = $this->synonyms[$this->token];
+            if ($this->dialect->isSynonym($this->token)) {
+              $order = $this->dialect->getSynonym($this->token);
               if (($order != 'asc') && ($order != 'desc')) {
                 return $this->raiseError('Unexpected token');
               }
