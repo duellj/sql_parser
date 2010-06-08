@@ -106,8 +106,8 @@ class SqlConverter {
           $aliased_fields[] = $id;
         }
         else {
-          if ($this->parsed_sql['column_table'][$id]) {
-            $table_fields[$this->parsed_sql['column_table'][$id]][] = $column_name;
+          if ($this->parsed_sql['column_tables'][$id]) {
+            $table_fields[$this->parsed_sql['column_tables'][$id]][] = $column_name;
           }
           else {
             $table_fields[$this->parsed_sql['table_aliases'][0]][] = $column_name;
@@ -118,7 +118,7 @@ class SqlConverter {
       // Add fields for each table.
       if ($table_fields) {
         foreach ($table_fields as $table_alias => $columns) {
-          $this->output[] = "\t->fields('$table_alias', array('" . join("', '", $this->parsed_sql['column_names']) . "'))";
+          $this->output[] = "\t->fields('$table_alias', array('" . join("', '", $columns) . "'))";
         }
       }
       // Add aliased fields.
