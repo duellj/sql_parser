@@ -39,8 +39,6 @@ class SqlParser {
    * 
    * @param mixed $values 
    * @param mixed $types 
-   *
-   * @return void
    */
   function getParams(&$values, &$types) {
     $values = array();

@@ -44,6 +44,14 @@ class SqlDialect {
     return in_array($token, $this->types);
   }
 
+  function isVal($token) {
+    return (($token == 'real_val') ||
+      ($token == 'int_val') ||
+      ($token == 'text_val') ||
+      ($token == 'placeholder') ||
+      ($token == 'NULL'));
+  }
+
   //  isFunc()
   function isFunc($token) {
     return in_array($token, $this->functions);
