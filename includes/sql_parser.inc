@@ -921,6 +921,7 @@ class SqlParser {
             'columns' => $columns,
           ),
         );
+        $this->getTok();
       }
       else {
         // @todo This is setting the join clause for the first table, which is unnecessary.
@@ -944,7 +945,7 @@ class SqlParser {
         $this->getTok();
       } 
       elseif (($this->token == 'left') || ($this->token == 'right')) {
-        $join = $this->lexer->tokenText;
+        $join = strtolower($this->lexer->tokenText);
         $this->getTok();
         if ($this->token == 'join') {
           $tree['table_join'][] = $join . ' join';
