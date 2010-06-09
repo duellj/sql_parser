@@ -11,9 +11,10 @@
  * Adapted from the PEAR SQL_Parser package.
  *
  * @see http://pear.php.net/package/SQL_Parser
-
+ *
  * @todo Document, Document, Document!!
  * @todo Scale down the beast that is nextToken().
+ * 
  */
 class SqlLexer {
   // array of valid tokens for the lexer to recognize
@@ -21,14 +22,14 @@ class SqlLexer {
   var $symbols = array();
 
   // instance variables
-  var $tokPtr = 0;
-  var $tokStart = 0;
-  var $tokLen = 0;
-  var $tokText = '';
-  var $lineNo = 0;
+  var $tokenPointer = 0;
+  var $tokenStart = 0;
+  var $tokenLength = 0;
+  var $tokenText = '';
+  var $lineNumber = 0;
   var $lineBegin = 0;
   var $string = '';
-  var $stringLen = 0;
+  var $stringLength = 0;
 
   // Will not be altered by skip()
   var $tokAbsStart = 0;
@@ -39,43 +40,56 @@ class SqlLexer {
   // Specify how many tokens to save in tokenStack, so the
   // token stream can be pushed back.
   var $tokenStack = array();
-  var $stackPtr = 0;
+  var $stackPointer = 0;
 
   function __construct($string = '', $lookahead=0) {
     $this->string = $string;
-    $this->stringLen = strlen($string);
+    $this->stringLength = strlen($string);
     $this->lookahead = $lookahead;
   }
     
+  /**
+   * Returns the next character from the current token string.
+   *
+   * Increases the token pointer and token length by one and returns the next
+   * single character of the current token string, or NULL if the end of the
+   * token string is reached.
+   *
+   * @return
+   *   The next single character or null.
+   */ 
   function get() {
-    ++$this->tokPtr;
-    ++$this->tokLen;
-    return ($this->tokPtr <= $this->stringLen) ? $this->string{$this->tokPtr - 1} : NULL;
+    ++$this->tokenPointer;
+    ++$this->tokenLength;
+    return ($this->tokenPointer <= $this->stringLength) ? $this->string{$this->tokenPointer - 1} : NULL;
   }
 
   function unget() {
-    --$this->tokPtr;
-    --$this->tokLen;
+    --$this->tokenPointer;
+    --$this->tokenLength;
   }
 
   function skip() {
-    ++$this->tokStart;
-    return ($this->tokPtr != $this->stringLen) ? $this->string{$this->tokPtr++} : '';
+    ++$this->tokenStart;
+    return ($this->tokenPointer != $this->stringLength) ? $this->string{$this->tokenPointer++} : '';
   }
 
   function revert() {
-    $this->tokPtr = $this->tokStart;
-    $this->tokLen = 0;
+    $this->tokenPointer = $this->tokenStart;
+    $this->tokenLength = 0;
   }
 
   /**
    * Checks if character is a comparison operator.
    *
-   * @param $c
+   * @param $character
    *   A single character.
+   *
+   * @return
+   *   TRUE if $character is a comparison operator, FALSE otherwise.
    */
-  function isCompop($c) {
-    return (($c == '<') || ($c == '>') || ($c == '=') || ($c == '!'));
+  function isComparisonOperator($character) {
+    return (($character == '<') || ($character == '>') || ($character == '=') || ($character == '!'));
   }
 
   /**
@@ -86,29 +100,28 @@ class SqlLexer {
    * maximum number of token's that can be looked ahead.
    */
   function pushBack() {
-    if ($this->lookahead > 0 && count($this->tokenStack)>0 && $this->stackPtr>0) {
-      $this->stackPtr--;
+    if ($this->lookahead > 0 && count($this->tokenStack) > 0 && $this->stackPointer > 0) {
+      $this->stackPointer--;
     }
   }
 
-  // lex()
   function lex() {
     if ($this->lookahead > 0) {
-      // The stackPtr, should always be the same as the count of
-      // elements in the tokenStack.  The stackPtr, can be thought
+      // The stackPointer, should always be the same as the count of
+      // elements in the tokenStack.  The stackPointer, can be thought
       // of as pointing to the next token to be added.  If however
-      // a pushBack() call is made, the stackPtr, will be less than the
+      // a pushBack() call is made, the stackPointer, will be less than the
       // count, to indicate that we should take that token from the
       // stack, instead of calling nextToken for a new token.
 
-      if ($this->stackPtr<count($this->tokenStack)) {
+      if ($this->stackPointer<count($this->tokenStack)) {
 
-        $this->tokText = $this->tokenStack[$this->stackPtr]['tokText'];
-        $this->skipText = $this->tokenStack[$this->stackPtr]['skipText'];
-        $token = $this->tokenStack[$this->stackPtr]['token'];
+        $this->tokenText = $this->tokenStack[$this->stackPointer]['tokenText'];
+        $this->skipText = $this->tokenStack[$this->stackPointer]['skipText'];
+        $token = $this->tokenStack[$this->stackPointer]['token'];
 
         // We have read the token, so now iterate again.
-        $this->stackPtr++;
+        $this->stackPointer++;
         return $token;
 
       } 
@@ -117,7 +130,7 @@ class SqlLexer {
         // If $tokenStack is full (equal to lookahead), pop the oldest
         // element off, to make room for the new one.
 
-        if ($this->stackPtr == $this->lookahead) {
+        if ($this->stackPointer == $this->lookahead) {
           // For some reason array_shift and
           // array_pop screw up the indexing, so we do it manually.
           for ($i=0; $i<(count($this->tokenStack)-1); $i++) {
@@ -125,17 +138,17 @@ class SqlLexer {
           }
 
           // Indicate that we should put the element in
-          // at the stackPtr position.
-          $this->stackPtr--;
+          // at the stackPointer position.
+          $this->stackPointer--;
         }
 
         $token = $this->nextToken();
-        $this->tokenStack[$this->stackPtr] = array(
+        $this->tokenStack[$this->stackPointer] = array(
           'token' => $token,
-          'tokText' => $this->tokText,
+          'tokenText' => $this->tokenText,
           'skipText' => $this->skipText
         );
-        $this->stackPtr++;
+        $this->stackPointer++;
         return $token;
       }
     }
@@ -147,18 +160,19 @@ class SqlLexer {
 
   // nextToken()
   function nextToken() {
-    if ($this->string == '') return;
+    if ($this->string == '') {
+      return;
+    }
     $state = 0;
-    $this->tokAbsStart = $this->tokStart;
+    $this->tokAbsStart = $this->tokenStart;
 
     while (TRUE) {
-      //echo "State: $state, Char: $c\n";
       switch($state) {
-          // State 0 : Start of token
+        // State 0 : Start of token
         case 0:
-          $this->tokPtr = $this->tokStart;
-          $this->tokText = '';
-          $this->tokLen = 0;
+          $this->tokenPointer = $this->tokenStart;
+          $this->tokenText = '';
+          $this->tokenLength = 0;
           $c = $this->get();
 
           if (is_NULL($c)) { // End Of Input
@@ -176,21 +190,21 @@ class SqlLexer {
                 if($c != "\n")
                   $this->unget();
               }
-              ++$this->lineNo;
-              $this->lineBegin = $this->tokPtr;
+              ++$this->lineNumber;
+              $this->lineBegin = $this->tokenPointer;
             }
 
             $c = $this->skip();
-            $this->tokLen = 1;
+            $this->tokenLength = 1;
           }
 
           // Escape quotes and backslashes
           if ($c == '\\') {
             $t = $this->get();
             if ($t == '\'' || $t == '\\' || $t == '"') {
-              $this->tokText = $t;
-              $this->tokStart = $this->tokPtr;
-              return $this->tokText;
+              $this->tokenText = $t;
+              $this->tokenStart = $this->tokenPointer;
+              return $this->tokenText;
             } 
             else {
               $this->unget();
@@ -226,9 +240,9 @@ class SqlLexer {
             $t = $this->get();
             if ($t == '.') { // ellipsis
               if ($this->get() == '.') {
-                $this->tokText = '...';
-                $this->tokStart = $this->tokPtr;
-                return $this->tokText;
+                $this->tokenText = '...';
+                $this->tokenStart = $this->tokenPointer;
+                return $this->tokenText;
               } 
               else {
                 $state = 999;
@@ -268,7 +282,7 @@ class SqlLexer {
             break;
           }
 
-          if ($this->isCompop($c)) { // comparison operator
+          if ($this->isComparisonOperator($c)) { // comparison operator
             $state = 10;
             break;
           }
@@ -289,18 +303,18 @@ class SqlLexer {
         // State 2 : Complete keyword or ident
         case 2:
           $this->unget();
-          $this->tokText = substr($this->string, $this->tokStart, $this->tokLen);
+          $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
 
-          $testToken = strtolower($this->tokText);
+          $testToken = strtolower($this->tokenText);
           if (isset($this->symbols[$testToken])) {
 
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-            $this->tokStart = $this->tokPtr;
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->tokenStart = $this->tokenPointer;
             return $testToken;
           } 
           else {
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-            $this->tokStart = $this->tokPtr;
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->tokenStart = $this->tokenPointer;
             return 'ident';
           }
           break;
@@ -335,11 +349,11 @@ class SqlLexer {
         // State 6: Complete integer number
         case 6:
           $this->unget();
-          $this->tokText = intval(substr($this->string, $this->tokStart,
-            $this->tokLen));
+          $this->tokenText = intval(substr($this->string, $this->tokenStart,
+            $this->tokenLength));
           $this->skipText = substr($this->string, $this->tokAbsStart,
-            $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+            $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return 'int_val';
           break;
 
@@ -364,15 +378,15 @@ class SqlLexer {
         // State 8: Complete real number */
         case 8:
           $this->unget();
-          $this->tokText = floatval(substr($this->string, $this->tokStart, $this->tokLen));
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+          $this->tokenText = floatval(substr($this->string, $this->tokenStart, $this->tokenLength));
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return 'real_val';
 
         // State 10: Incomplete comparison operator
         case 10:
           $c = $this->get();
-          if ($this->isCompop($c))
+          if ($this->isComparisonOperator($c))
           {
             $state = 10;
             break;
@@ -383,11 +397,11 @@ class SqlLexer {
         // State 11: Complete comparison operator
         case 11:
           $this->unget();
-          $this->tokText = substr($this->string, $this->tokStart, $this->tokLen);
-          if($this->tokText) {
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-            $this->tokStart = $this->tokPtr;
-            return $this->tokText;
+          $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
+          if($this->tokenText) {
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->tokenStart = $this->tokenPointer;
+            return $this->tokenText;
           }
           $state = 999;
           break;
@@ -398,12 +412,12 @@ class SqlLexer {
           while (!$bail) {
             switch ($this->get()) {
               case '':
-                $this->tokText = NULL;
+                $this->tokenText = NULL;
                 $bail = TRUE;
                 break;
               case "\\":
                 if (!$this->get()) {
-                  $this->tokText = NULL;
+                  $this->tokenText = NULL;
                   $bail = TRUE;
                 }
                 //$bail = TRUE;
@@ -418,12 +432,12 @@ class SqlLexer {
                 $this->unget();
                 break;
               case $quote:
-                $this->tokText = stripslashes(substr($this->string, ($this->tokStart+1), ($this->tokLen-2)));
+                $this->tokenText = stripslashes(substr($this->string, ($this->tokenStart+1), ($this->tokenLength-2)));
                 $bail = TRUE;
                 break;
             }
           }
-          if (!is_NULL($this->tokText)) {
+          if (!is_NULL($this->tokenText)) {
             $state = 13;
             break;
           }
@@ -432,8 +446,8 @@ class SqlLexer {
 
         // State 13: Complete text string
         case 13:
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return 'text_val';
           break;
 
@@ -451,12 +465,12 @@ class SqlLexer {
             }
 
             if ($c != "") {
-              ++$this->lineNo;
-              $this->lineBegin = $this->tokPtr;
+              ++$this->lineNumber;
+              $this->lineBegin = $this->tokenPointer;
             }
 
             // We need to skip all the text.
-            $this->tokStart = $this->tokPtr;
+            $this->tokenStart = $this->tokenPointer;
             $state = 0;
           } 
           else {
@@ -507,9 +521,9 @@ class SqlLexer {
         // State 19: Complete Sys Var
         case 19:
           $this->unget();
-          $this->tokText = substr($this->string, $this->tokStart, $this->tokLen);
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+          $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return 'sys_var';
 
         //  State 20: Placeholder.
@@ -526,25 +540,25 @@ class SqlLexer {
               break;
             }
           }
-          $this->tokText = substr($this->string, $this->tokStart, $this->tokLen);
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+          $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return 'placeholder';
           break;
 
         // State 999 : Unknown token.  Revert to single char
         case 999:
           $this->revert();
-          $this->tokText = $this->get();
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
-          return $this->tokText;
+          $this->tokenText = $this->get();
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
+          return $this->tokenText;
 
         // State 1000 : End Of Input
         case 1000:
-          $this->tokText = '*end of input*';
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokStart-$this->tokAbsStart);
-          $this->tokStart = $this->tokPtr;
+          $this->tokenText = '*end of input*';
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->tokenStart = $this->tokenPointer;
           return NULL;
       }
     }

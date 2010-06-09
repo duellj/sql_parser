@@ -39,7 +39,7 @@ class SqlParser {
    * 
    * @param mixed $values 
    * @param mixed $types 
-
+   *
    * @return void
    */
   function getParams(&$values, &$types) {
@@ -48,7 +48,7 @@ class SqlParser {
     while ($this->token != ')') {
       $this->getTok();
       if ($this->dialect->isVal($this->token) || ($this->token == 'ident')) {
-        $values[] = $this->lexer->tokText;
+        $values[] = $this->lexer->tokenText;
         $types[] = $this->token;
       } 
       elseif ($this->token == ')') {
@@ -68,22 +68,20 @@ class SqlParser {
    * raiseError 
    * 
    * @param mixed $message 
-   *
-   * @return void
    */
   function raiseError($message) {
     $end = 0;
     if ($this->lexer->string != '') {
-      while (($this->lexer->lineBegin+$end < $this->lexer->stringLen) && ($this->lexer->string{$this->lexer->lineBegin+$end} != "\n")) {
+      while (($this->lexer->lineBegin+$end < $this->lexer->stringLength) && ($this->lexer->string{$this->lexer->lineBegin+$end} != "\n")) {
         ++$end;
       }
     }
 
-    $message = 'Parse error: ' . $message . ' on line ' . ($this->lexer->lineNo + 1) . "\n";
+    $message = 'Parse error: ' . $message . ' on line ' . ($this->lexer->lineNumber + 1) . "\n";
     $message .= substr($this->lexer->string, $this->lexer->lineBegin, $end) . "\n";
-    $length = is_NULL($this->token) ? 0 : strlen($this->lexer->tokText);
-    $message .= str_repeat(' ', abs($this->lexer->tokPtr - $this->lexer->lineBegin - $length)) . "^";
-    $message .= ' found: "' . $this->lexer->tokText . '"';
+    $length = is_NULL($this->token) ? 0 : strlen($this->lexer->tokenText);
+    $message .= str_repeat(' ', abs($this->lexer->tokenPointer - $this->lexer->lineBegin - $length)) . "^";
+    $message .= ' found: "' . $this->lexer->tokenText . '"';
     drupal_set_message("<pre>" . $message . "</pre>");
 
     return FALSE; //PEAR::raiseError($message);
@@ -92,7 +90,7 @@ class SqlParser {
   // getTok()
   function getTok() {
     $this->token = $this->lexer->lex();
-    //echo $this->token."\t".$this->lexer->tokText."\n";
+    //echo $this->token."\t".$this->lexer->tokenText."\n";
   }
     
   // &parseFieldOptions()
@@ -107,7 +105,7 @@ class SqlParser {
         case 'constraint':
           $this->getTok();
           if ($this->token = 'ident') {
-            $constraintName = $this->lexer->tokText;
+            $constraintName = $this->lexer->tokenText;
             $namedConstraint = TRUE;
             $haveValue = FALSE;
           }
@@ -120,7 +118,7 @@ class SqlParser {
           if ($this->dialect->isVal($this->token)) {
             $constraintOpts = array(
               'type' => 'default_value',
-              'value' => $this->lexer->tokText,
+              'value' => $this->lexer->tokenText,
             );
           }
           elseif ($this->dialect->isFunc($this->token)) {
@@ -183,7 +181,7 @@ class SqlParser {
             if ($this->token != 'ident') {
               return $this->raiseError('Expected an identifier');
             }
-            $constraintOpts['column_names'][] = $this->lexer->tokText;
+            $constraintOpts['column_names'][] = $this->lexer->tokenText;
             $this->getTok();
             if (($this->token != ')') && ($this->token != ',')) {
               return $this->raiseError('Expected ) or ,');
@@ -240,7 +238,7 @@ class SqlParser {
           $haveValue = FALSE;
           break;
         default:
-          return $this->raiseError('Unexpected token ' . $this->lexer->tokText);
+          return $this->raiseError('Unexpected token ' . $this->lexer->tokenText);
       }
       if ($haveValue) {
         if ($namedConstraint) {
@@ -283,7 +281,7 @@ class SqlParser {
       return $this->raiseError('Expected a column name or value');
     } 
     else {
-      $clause['arg_1']['value'] = $this->lexer->tokText;
+      $clause['arg_1']['value'] = $this->lexer->tokenText;
       $clause['arg_1']['type'] = $this->token;
     }
 
@@ -331,7 +329,7 @@ class SqlParser {
             $clause['arg_2']['type'] = 'command';
           } 
           elseif ($this->token == 'placeholder') {
-            $clause['arg_2']['value'] = $this->lexer->tokText;
+            $clause['arg_2']['value'] = $this->lexer->tokenText;
             $clause['arg_2']['type'] = $this->token;
             $this->getTok();
           }
@@ -365,7 +363,7 @@ class SqlParser {
             }
           } 
           else {
-            $clause['arg_2']['value'] = $this->lexer->tokText;
+            $clause['arg_2']['value'] = $this->lexer->tokenText;
             $clause['arg_2']['type'] = $this->token;
           }
           break;
@@ -402,7 +400,7 @@ class SqlParser {
       // parse field identifier
       $this->getTok();
       if ($this->token == 'ident') {
-        $name = $this->lexer->tokText;
+        $name = $this->lexer->tokenText;
       } 
       elseif ($this->token == ')') {
         return $fields;
@@ -523,7 +521,7 @@ class SqlParser {
             }
           case 'ident': 
           case '*':
-            $opts['arg'][] = $this->lexer->tokText;
+            $opts['arg'][] = $this->lexer->tokenText;
             break;
           default:
             return $this->raiseError('Invalid argument');
@@ -534,10 +532,10 @@ class SqlParser {
         while ($this->token != ')') {
           switch ($this->token) {
             case 'ident': 
-              $opts['arg'][] = $this->lexer->tokText;
+              $opts['arg'][] = $this->lexer->tokenText;
               break;
             case 'text_val':
-              $opts['arg'][] = "'" .  $this->lexer->tokText . "'";
+              $opts['arg'][] = "'" .  $this->lexer->tokenText . "'";
               break;
             case ',':
               // do nothing
@@ -555,7 +553,7 @@ class SqlParser {
       case 'sum':
       default:
         $this->getTok();
-        $opts['arg'] = $this->lexer->tokText;
+        $opts['arg'] = $this->lexer->tokenText;
         break;
     }
     $this->getTok();
@@ -571,7 +569,7 @@ class SqlParser {
     elseif ($this->token == 'as') {
       $this->getTok();
       if ($this->token == 'ident' ) {
-        $opts['alias'] = $this->lexer->tokText;
+        $opts['alias'] = $this->lexer->tokenText;
       } 
       else {
         return $this->raiseError('Expected column alias');
@@ -579,7 +577,7 @@ class SqlParser {
     } 
     else {
       if ($this->token == 'ident' ) {
-        $opts['alias'] = $this->lexer->tokText;
+        $opts['alias'] = $this->lexer->tokenText;
       } 
       else {
         return $this->raiseError('Expected column alias, from or comma');
@@ -596,7 +594,7 @@ class SqlParser {
         $tree = array('command' => 'create_table');
         $this->getTok();
         if ($this->token == 'ident') {
-          $tree['table_names'][] = $this->lexer->tokText;
+          $tree['table_names'][] = $this->lexer->tokenText;
           $fields = $this->parseFieldList();
           //if (PEAR::isError($fields)) {
           //return $fields;
@@ -630,7 +628,7 @@ class SqlParser {
       $tree = array('command' => 'insert');
       $this->getTok();
       if ($this->token == 'ident') {
-        $tree['table_names'][] = $this->lexer->tokText;
+        $tree['table_names'][] = $this->lexer->tokenText;
         $this->getTok();
       } 
       else {
@@ -683,7 +681,7 @@ class SqlParser {
     $this->getTok();
     if ($this->token == 'ident') {
       $tree = array('command' => 'update');
-      $tree['table_names'][] = $this->lexer->tokText;
+      $tree['table_names'][] = $this->lexer->tokenText;
     } 
     else {
       return $this->raiseError('Expected table name');
@@ -697,7 +695,7 @@ class SqlParser {
       if ($this->token != 'ident') {
         return $this->raiseError('Expected a column name');
       }
-      $tree['column_names'][] = $this->lexer->tokText;
+      $tree['column_names'][] = $this->lexer->tokenText;
       $this->getTok();
       if ($this->token != '=') {
         return $this->raiseError('Expected =');
@@ -706,7 +704,7 @@ class SqlParser {
       if (!$this->dialect->isVal($this->token)) {
         return $this->raiseError('Expected a value');
       }
-      $tree['values'][] = array('value' => $this->lexer->tokText,
+      $tree['values'][] = array('value' => $this->lexer->tokenText,
         'type' => $this->token);
       $this->getTok();
       if ($this->token == 'where') {
@@ -735,7 +733,7 @@ class SqlParser {
     if ($this->token != 'ident') {
       return $this->raiseError('Expected a table name');
     }
-    $tree['table_names'][] = $this->lexer->tokText;
+    $tree['table_names'][] = $this->lexer->tokenText;
     $this->getTok();
     if ($this->token != 'where') {
       return $this->raiseError('Expected "where"');
@@ -758,7 +756,7 @@ class SqlParser {
         if ($this->token != 'ident') {
           return $this->raiseError('Expected a table name');
         }
-        $tree['table_names'][] = $this->lexer->tokText;
+        $tree['table_names'][] = $this->lexer->tokenText;
         $this->getTok();
         if (($this->token == 'restrict') || ($this->token == 'cascade')) {
           $tree['drop_behavior'] = $this->token;
@@ -799,7 +797,7 @@ class SqlParser {
     elseif ($this->token == 'ident' || $this->dialect->isFunc($this->token)) {
       while ($this->token != 'from') {
         if ($this->token == 'ident') {
-          list($columnTable, $columnName) = explode(".", $this->lexer->tokText);
+          list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
           if (!$columnName) {
             $columnName = $columnTable;
             unset($columnTable);
@@ -809,14 +807,14 @@ class SqlParser {
           if ($this->token == 'as') {
             $this->getTok();
             if ($this->token == 'ident' ) {
-              $columnAlias = $this->lexer->tokText;
+              $columnAlias = $this->lexer->tokenText;
             } 
             else {
               return $this->raiseError('Expected column alias');
             }
           } 
           elseif ($this->token == 'ident') {
-            $columnAlias = $this->lexer->tokText;
+            $columnAlias = $this->lexer->tokenText;
           } 
           else {
             $columnAlias = '';
@@ -844,7 +842,7 @@ class SqlParser {
             if ($this->token == 'as') {
               $this->getTok();
               if ($this->token == 'ident' ) {
-                $columnAlias = $this->lexer->tokText;
+                $columnAlias = $this->lexer->tokenText;
               } 
               else {
                 return $this->raiseError('Expected column alias');
@@ -874,16 +872,16 @@ class SqlParser {
     }
     $this->getTok();
     while ($this->token == 'ident') {
-      $tree['table_names'][] = $this->lexer->tokText;
+      $tree['table_names'][] = $this->lexer->tokenText;
       $this->getTok();
       if ($this->token == 'ident') {
-        $tree['table_aliases'][] = $this->lexer->tokText;
+        $tree['table_aliases'][] = $this->lexer->tokenText;
         $this->getTok();
       } 
       elseif ($this->token == 'as') {
         $this->getTok();
         if ($this->token == 'ident') {
-          $tree['table_aliases'][] = $this->lexer->tokText;
+          $tree['table_aliases'][] = $this->lexer->tokenText;
         } 
         else {
           return $this->raiseError('Expected table alias');
@@ -912,7 +910,7 @@ class SqlParser {
         do {
           $this->getTok();
           if ($this->token == 'ident') {
-            $columns[] = $this->lexer->tokText;
+            $columns[] = $this->lexer->tokenText;
           }
         }
         while ($this->token != ')');
@@ -937,7 +935,7 @@ class SqlParser {
         $this->getTok();
       } 
       elseif (($this->token == 'cross') || ($this->token == 'inner')) {
-        $join = strtolower($this->lexer->tokText);
+        $join = strtolower($this->lexer->tokenText);
         $this->getTok();
         if ($this->token != 'join') {
           return $this->raiseError('Expected token "join"');
@@ -946,7 +944,7 @@ class SqlParser {
         $this->getTok();
       } 
       elseif (($this->token == 'left') || ($this->token == 'right')) {
-        $join = $this->lexer->tokText;
+        $join = $this->lexer->tokenText;
         $this->getTok();
         if ($this->token == 'join') {
           $tree['table_join'][] = $join . ' join';
@@ -967,7 +965,7 @@ class SqlParser {
         $this->getTok();
       } 
       elseif ($this->token == 'natural') {
-        $join = $this->lexer->tokText;
+        $join = $this->lexer->tokenText;
         $this->getTok();
         if ($this->token == 'join') {
           $tree['table_join'][] = $join . ' join';
@@ -1017,7 +1015,7 @@ class SqlParser {
           }
           $this->getTok();
           while ($this->token == 'ident') {
-            $col = $this->lexer->tokText;
+            $col = $this->lexer->tokenText;
             $this->getTok();
             if ($this->dialect->isSynonym($this->token)) {
               $order = $this->dialect->getSynonym($this->token);
@@ -1040,7 +1038,7 @@ class SqlParser {
           if ($this->token != 'int_val') {
             return $this->raiseError('Expected an integer value');
           }
-          $length = $this->lexer->tokText;
+          $length = $this->lexer->tokenText;
           $start = 0;
           $this->getTok();
           if ($this->token == ',') {
@@ -1049,7 +1047,7 @@ class SqlParser {
               return $this->raiseError('Expected an integer value');
             }
             $start = $length;
-            $length = $this->lexer->tokText;
+            $length = $this->lexer->tokenText;
             $this->getTok();
           }
           $tree['limit_clause'] = array('start' => $start,
@@ -1062,7 +1060,7 @@ class SqlParser {
           }
           $this->getTok();
           while ($this->token == 'ident') {
-            $col = $this->lexer->tokText;
+            $col = $this->lexer->tokenText;
             $this->getTok();
             if ($this->token == ',') {
               $this->getTok();

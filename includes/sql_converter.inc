@@ -5,6 +5,13 @@
  * @file
  */
 
+/**
+ * Sql Converter
+ *
+ * Takes a parsed sql array and converts it into a DBTNG object string.
+ *
+ * @todo: Add support for converting into actual DBTNG objects (new class).
+ */
 class SqlConverter {
   protected $parsed_sql;
 
