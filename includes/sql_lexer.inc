@@ -114,7 +114,7 @@ class SqlLexer {
       // count, to indicate that we should take that token from the
       // stack, instead of calling nextToken for a new token.
 
-      if ($this->stackPointer<count($this->tokenStack)) {
+      if ($this->stackPointer < count($this->tokenStack)) {
 
         $this->tokenText = $this->tokenStack[$this->stackPointer]['tokenText'];
         $this->skipText = $this->tokenStack[$this->stackPointer]['skipText'];
@@ -133,8 +133,8 @@ class SqlLexer {
         if ($this->stackPointer == $this->lookahead) {
           // For some reason array_shift and
           // array_pop screw up the indexing, so we do it manually.
-          for ($i=0; $i<(count($this->tokenStack)-1); $i++) {
-            $this->tokenStack[$i] = $this->tokenStack[$i+1];
+          for ($i=0; $i < (count($this->tokenStack) - 1); $i++) {
+            $this->tokenStack[$i] = $this->tokenStack[$i + 1];
           }
 
           // Indicate that we should put the element in
@@ -309,12 +309,12 @@ class SqlLexer {
           $testToken = strtolower($this->tokenText);
           if (isset($this->symbols[$testToken])) {
 
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
             $this->tokenStart = $this->tokenPointer;
             return $testToken;
           } 
           else {
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
             $this->tokenStart = $this->tokenPointer;
             return 'ident';
           }
@@ -350,10 +350,8 @@ class SqlLexer {
         // State 6: Complete integer number.
         case 6:
           $this->unget();
-          $this->tokenText = intval(substr($this->string, $this->tokenStart,
-            $this->tokenLength));
-          $this->skipText = substr($this->string, $this->tokAbsStart,
-            $this->tokenStart-$this->tokAbsStart);
+          $this->tokenText = intval(substr($this->string, $this->tokenStart, $this->tokenLength));
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'int_val';
           break;
@@ -379,7 +377,7 @@ class SqlLexer {
         case 8:
           $this->unget();
           $this->tokenText = floatval(substr($this->string, $this->tokenStart, $this->tokenLength));
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'real_val';
 
@@ -398,7 +396,7 @@ class SqlLexer {
           $this->unget();
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
           if($this->tokenText) {
-            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+            $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
             $this->tokenStart = $this->tokenPointer;
             return $this->tokenText;
           }
@@ -431,7 +429,7 @@ class SqlLexer {
                 $this->unget();
                 break;
               case $quote:
-                $this->tokenText = $quote . stripslashes(substr($this->string, ($this->tokenStart+1), ($this->tokenLength-2))) . $quote;
+                $this->tokenText = $quote . stripslashes(substr($this->string, ($this->tokenStart + 1), ($this->tokenLength - 2))) . $quote;
                 $bail = TRUE;
                 break;
             }
@@ -445,7 +443,7 @@ class SqlLexer {
 
         // State 13: Complete text string.
         case 13:
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'text_val';
           break;
@@ -521,7 +519,7 @@ class SqlLexer {
         case 19:
           $this->unget();
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'sys_var';
 
@@ -540,7 +538,7 @@ class SqlLexer {
             }
           }
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'placeholder';
           break;
@@ -549,14 +547,14 @@ class SqlLexer {
         case 999:
           $this->revert();
           $this->tokenText = $this->get();
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return $this->tokenText;
 
         // State 1000 : End Of Input.
         case 1000:
           $this->tokenText = '*end of input*';
-          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
+          $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart - $this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return NULL;
       }
