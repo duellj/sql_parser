@@ -168,7 +168,7 @@ class SqlLexer {
 
     while (TRUE) {
       switch($state) {
-        // State 0 : Start of token
+        // State 0 : Start of token.
         case 0:
           $this->tokenPointer = $this->tokenStart;
           $this->tokenText = '';
@@ -265,6 +265,7 @@ class SqlLexer {
           }
           if ($c == '-') {
             $t = $this->get();
+            // Double dashes start comments.
             if ($t == '-') {
               $state = 14;
               break;
@@ -276,7 +277,7 @@ class SqlLexer {
             }
           }
 
-          // placeholder
+          // Check for Drupal 6 placeholders.
           if ($c == '%') {
             $state = 20;
             break;
@@ -286,11 +287,11 @@ class SqlLexer {
             $state = 10;
             break;
           }
-          // Unknown token.  Revert to single char
+          // Unknown token.  Revert to single char.
           $state = 999;
           break;
 
-        // State 1 : Incomplete keyword or ident
+        // State 1 : Incomplete keyword or ident.
         case 1:
           $c = $this->get();
           if (ctype_alnum(ord($c)) || ($c == '_') || ($c == '.')) {
@@ -300,7 +301,7 @@ class SqlLexer {
           $state = 2;
           break;
 
-        // State 2 : Complete keyword or ident
+        // State 2 : Complete keyword or ident.
         case 2:
           $this->unget();
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
@@ -319,7 +320,7 @@ class SqlLexer {
           }
           break;
 
-        // State 5: Incomplete real or int number
+        // State 5: Incomplete real or int number.
         case 5:
           $c = $this->get();
           if (ctype_digit(ord($c))) {
@@ -346,7 +347,7 @@ class SqlLexer {
             break;
           }
 
-        // State 6: Complete integer number
+        // State 6: Complete integer number.
         case 6:
           $this->unget();
           $this->tokenText = intval(substr($this->string, $this->tokenStart,
@@ -357,16 +358,15 @@ class SqlLexer {
           return 'int_val';
           break;
 
-        // State 7: Incomplete real number
+        // State 7: Incomplete real number.
         case 7:
           $c = $this->get();
 
-          /* Analogy Start */
+          // Check if number is in scientific notation.
           if ($c == 'e' || $c == 'E') {
             $state = 15;
             break;
           }
-          /* Analogy End   */
 
           if (ctype_digit(ord($c))) {
             $state = 7;
@@ -375,7 +375,7 @@ class SqlLexer {
           $state = 8;
           break;
 
-        // State 8: Complete real number */
+        // State 8: Complete real number.
         case 8:
           $this->unget();
           $this->tokenText = floatval(substr($this->string, $this->tokenStart, $this->tokenLength));
@@ -383,18 +383,17 @@ class SqlLexer {
           $this->tokenStart = $this->tokenPointer;
           return 'real_val';
 
-        // State 10: Incomplete comparison operator
+        // State 10: Incomplete comparison operator.
         case 10:
           $c = $this->get();
-          if ($this->isComparisonOperator($c))
-          {
+          if ($this->isComparisonOperator($c)) {
             $state = 10;
             break;
           }
           $state = 11;
           break;
 
-        // State 11: Complete comparison operator
+        // State 11: Complete comparison operator.
         case 11:
           $this->unget();
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
@@ -406,7 +405,7 @@ class SqlLexer {
           $state = 999;
           break;
 
-        // State 12: Incomplete text string
+        // State 12: Incomplete text string.
         case 12:
           $bail = FALSE;
           while (!$bail) {
@@ -432,7 +431,7 @@ class SqlLexer {
                 $this->unget();
                 break;
               case $quote:
-                $this->tokenText = stripslashes(substr($this->string, ($this->tokenStart+1), ($this->tokenLength-2)));
+                $this->tokenText = $quote . stripslashes(substr($this->string, ($this->tokenStart+1), ($this->tokenLength-2))) . $quote;
                 $bail = TRUE;
                 break;
             }
@@ -444,14 +443,14 @@ class SqlLexer {
           $state = 999;
           break;
 
-        // State 13: Complete text string
+        // State 13: Complete text string.
         case 13:
           $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
           $this->tokenStart = $this->tokenPointer;
           return 'text_val';
           break;
 
-        // State 14: Comment
+        // State 14: Comment.
         case 14:
           $c = $this->skip();
           if ($c == "\n" || $c == "\r" || $c == "") {
@@ -478,7 +477,7 @@ class SqlLexer {
           }
           break;
 
-        // State 15: Exponent Sign in Scientific Notation
+        // State 15: Exponent Sign in Scientific Notation.
         case 15:
           $c = $this->get();
           if($c == '-' || $c == '+') {
@@ -498,7 +497,7 @@ class SqlLexer {
           $state = 999;  // if no digit, then token is unknown
           break;
 
-        // State 17: Exponent Value in Scientific Notation
+        // State 17: Exponent Value in Scientific Notation.
         case 17:
           $c = $this->get();
           if (ctype_digit(ord($c))) {
@@ -508,7 +507,7 @@ class SqlLexer {
           $state = 8;  // At least 1 exponent digit was required
           break;
 
-        // State 18 : Incomplete System Variable
+        // State 18 : Incomplete System Variable.
         case 18:
           $c = $this->get();
           if (ctype_alnum(ord($c)) || $c == '_') {
@@ -518,7 +517,7 @@ class SqlLexer {
           $state = 19;
           break;
 
-        // State 19: Complete Sys Var
+        // State 19: Complete Sys Var.
         case 19:
           $this->unget();
           $this->tokenText = substr($this->string, $this->tokenStart, $this->tokenLength);
@@ -546,7 +545,7 @@ class SqlLexer {
           return 'placeholder';
           break;
 
-        // State 999 : Unknown token.  Revert to single char
+        // State 999 : Unknown token.  Revert to single char.
         case 999:
           $this->revert();
           $this->tokenText = $this->get();
@@ -554,7 +553,7 @@ class SqlLexer {
           $this->tokenStart = $this->tokenPointer;
           return $this->tokenText;
 
-        // State 1000 : End Of Input
+        // State 1000 : End Of Input.
         case 1000:
           $this->tokenText = '*end of input*';
           $this->skipText = substr($this->string, $this->tokAbsStart, $this->tokenStart-$this->tokAbsStart);
