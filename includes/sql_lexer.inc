@@ -31,7 +31,7 @@ class SqlLexer {
   var $string = '';
   var $stringLength = 0;
 
-  // Will not be altered by skip()
+  // Will not be altered by skip().
   var $tokAbsStart = 0;
   var $skipText = '';
 
@@ -64,6 +64,9 @@ class SqlLexer {
     return ($this->tokenPointer <= $this->stringLength) ? $this->string{$this->tokenPointer - 1} : NULL;
   }
 
+  /**
+   * Rewind token pointer to previous token.
+   */
   function unget() {
     --$this->tokenPointer;
     --$this->tokenLength;
@@ -113,7 +116,6 @@ class SqlLexer {
       // a pushBack() call is made, the stackPointer, will be less than the
       // count, to indicate that we should take that token from the
       // stack, instead of calling nextToken for a new token.
-
       if ($this->stackPointer < count($this->tokenStack)) {
 
         $this->tokenText = $this->tokenStack[$this->stackPointer]['tokenText'];
@@ -129,7 +131,6 @@ class SqlLexer {
 
         // If $tokenStack is full (equal to lookahead), pop the oldest
         // element off, to make room for the new one.
-
         if ($this->stackPointer == $this->lookahead) {
           // For some reason array_shift and
           // array_pop screw up the indexing, so we do it manually.
