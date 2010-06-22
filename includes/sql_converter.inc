@@ -279,6 +279,9 @@ class SqlConverter {
           $value = $matches[1];
         }
       }
+      elseif ($fragment['op'] == 'in') {
+        $value = 'array(' . join(', ', $fragment['arg_2']['value']) . ')';
+      }
       else {
         $value = $fragment['arg_2']['value'];
       }
