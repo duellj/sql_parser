@@ -1,5 +1,5 @@
 <?php
-// $Id$
+// $Id: sql_converter.inc,v 1.7 2010/06/22 23:00:28 duellj Exp $
 
 /**
  * @file
