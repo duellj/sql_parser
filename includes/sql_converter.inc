@@ -21,7 +21,20 @@ class SqlConverter {
     $this->parsed_sql = $parsed_sql;
   }
 
-  public function setValues($values) { }
+  /**
+   * Sets the query arguments.
+   *
+   * Any placeholders within the SQL statement correspond to arguments on a
+   * sequential basis, i.e. the first placeholder found (usually within the
+   * conditionals) will correspond to the first element in the arguments
+   * array.
+   *
+   * @param $arguments
+   *   An array of placeholder arguments.
+   */
+  public function setQueryArguments($arguments) {
+    $this->arguments = $arguments;
+  }
 
   public function convert() {
     if (!is_array($this->parsed_sql)) {

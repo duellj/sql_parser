@@ -335,6 +335,8 @@ class SqlLexer {
           }
 
           // Drupal 6 placeholders.
+          // @todo possibly abstract this out to make sql_lexer code agnostic
+          // i.e. not contain any drupalisms
           if ($c == '%') {
             $state = 20;
             break;
