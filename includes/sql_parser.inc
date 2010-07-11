@@ -1036,7 +1036,7 @@ class SqlParser {
   }
 
   /**
-   * Parse query table reference clause lsit.
+   * Parse query table reference clause list.
    *
    */
   function parseTables() {
