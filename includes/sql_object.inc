@@ -58,6 +58,13 @@ class SqlObject {
  */
 class SqlSelect extends SqlObject {
   /**
+   * Sql set identifier (e.g. 'distinct' or 'all').
+   *
+   * @var string
+   */
+  public $set_identifier;
+
+  /**
    * SQL fields.
    *
    * @var array
@@ -106,6 +113,16 @@ class SqlSelect extends SqlObject {
 
   public function __construct() {
     $this->command = 'select';
+  }
+
+  /**
+   * Set the set identifier of the query (e.g. distinct or all).
+   *
+   * @param $set_identifier
+   *   The set identifier of the query.
+   */
+  function setSetIdentifier($set_identifier) {
+    $this->set_indentifier = $set_identifier;
   }
 
   /**
@@ -350,7 +367,7 @@ class SqlTable {
   /**
    * Join condition
    *
-   * @todo make this a join condition object?
+   * @var SqlJoinCondition
    */
   public $join_condition;
 
@@ -382,7 +399,7 @@ class SqlTable {
    *
    * If the table join type is already set, then replaces table join type,
    * since there can only be one join type per table.  The join type will
-   * also be converted to lower case.
+   * be converted to lower case.
    *
    * @param $join
    *   The table join type.  Valid join types include:
@@ -394,6 +411,20 @@ class SqlTable {
    */
   public function setJoin($join) {
     $this->join = strtolower($join);
+  }
+
+  /**
+   * Sets the join condition for this table.
+   *
+   * Creates a new SqlJoinCondition and returns a reference to the created
+   * object.
+   *
+   * @param $type
+   *   The type of join condition to create.
+   */
+  public function &setJoinCondition($type) {
+    $this->join_condition = new SqlJoinCondition($type);
+    return $this->join_condition;
   }
 }
 
@@ -453,6 +484,19 @@ class SqlJoinConditional extends SqlConditional {
 
   public function __construct($type) {
     $this->type = $type;
+  }
+
+  /**
+   * If type join clause is 'using' type, then adds a column to the columns
+   * field.
+   *
+   * @param @column_name
+   *   The column name to add.
+   */
+  function addColumn($column_name) {
+    if ($type == 'using') {
+      $this->columns[] = $column_name;
+    }
   }
 }
 

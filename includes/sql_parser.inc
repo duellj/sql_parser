@@ -37,13 +37,17 @@ class SqlParser {
 
   /**
    * The current parsed token.
+   *
+   * @var string
    */
   private $token;
 
   /**
-   * The array of parsed SQL tokens.
+   * The sql object.
+   *
+   * @var SqlObject
    */
-  private $tree;
+  private $sql_object;
 
   /**
    * __construct 
@@ -55,11 +59,6 @@ class SqlParser {
   public function __construct($sql_string = NULL) {
     $this->sql_string = $sql_string;
     $this->dialect = new SqlDialect();
-
-    if (is_string($sql_string)) {
-      $this->lexer = new SqlLexer($this->sql_string, 1);
-      $this->lexer->symbols =& $this->dialect->symbols;
-    }
   }
 
   /**
@@ -75,14 +74,15 @@ class SqlParser {
   public function parse($sql_string = NULL) {
     if (is_string($sql_string)) {
       $this->sql_string = $sql_string;
+    } 
+
+    if ($this->sql_string) {
       // Initialize the Lexer with a 3-level look-back buffer.
       $this->lexer = new SqlLexer($this->sql_string, 3);
       $this->lexer->symbols =& $this->dialect->symbols;
-    } 
+    }
     else {
-      if (!is_object($this->lexer)) {
-        return $this->raiseError('No initial string specified');
-      }
+      return $this->raiseError('No initial string specified');
     }
 
     // Get query action.
@@ -106,6 +106,311 @@ class SqlParser {
       default:
         return $this->raiseError('Unknown action :' . $this->token);
     }
+  }
+    
+  /**
+   * Parses a SQL select statement.
+   *
+   * @param $subSelect
+   *   If TRUE then statement is treated as a subselect.
+   */
+  function parseSelect($subSelect = FALSE) {
+    $this->sql_object = new SqlSelect();
+
+    $this->parseSelectFields();
+    if ($this->token != 'from') {
+      return $this->raiseError('Expected "from"');
+    }
+
+    $this->parseTables();
+
+    while (!is_NULL($this->token) && (!$subSelect || $this->token != ')') && $this->token != ')') {
+      switch ($this->token) {
+        case 'where':
+          $clause = $this->parseSearchClause();
+          break;
+        case 'order':
+          $this->getToken();
+          if ($this->token != 'by') {
+            return $this->raiseError('Expected "by"');
+          }
+          $this->getToken();
+          while ($this->token == 'identifier') {
+            $col = $this->lexer->tokenText;
+            $this->getToken();
+            if ($this->dialect->isSynonym($this->token)) {
+              $order = $this->dialect->getSynonym($this->token);
+              if (($order != 'asc') && ($order != 'desc')) {
+                return $this->raiseError('Unexpected token');
+              }
+              $this->getToken();
+            } 
+            else {
+              $order = 'asc';
+            }
+            if ($this->token == ',') {
+              $this->getToken();
+            }
+            $this->tree['sort_order'][$col] = $order;
+          }
+          break;
+        case 'limit':
+          $this->getToken();
+          if ($this->token != 'int_val') {
+            return $this->raiseError('Expected an integer value');
+          }
+          $length = $this->lexer->tokenText;
+          $start = 0;
+          $this->getToken();
+          if ($this->token == ',') {
+            $this->getToken();
+            if ($this->token != 'int_val') {
+              return $this->raiseError('Expected an integer value');
+            }
+            $start = $length;
+            $length = $this->lexer->tokenText;
+            $this->getToken();
+          }
+          $this->tree['limit_clause'] = array('start' => $start,
+            'length' => $length);
+          break;
+        case 'group':
+          $this->getToken();
+          if ($this->token != 'by') {
+            return $this->raiseError('Expected "by"');
+          }
+          $this->getToken();
+          while ($this->token == 'identifier') {
+            $col = $this->lexer->tokenText;
+            $this->getToken();
+            if ($this->token == ',') {
+              $this->getToken();
+            }
+            $this->tree['group_by'][] = $col;
+          }
+          break;
+        case 'having':
+          $clause = $this->parseSearchClause();
+          $this->tree['having_clause'] = $clause;
+          break;
+        case ';':
+          // @todo: handle multiple sql strings.
+          $this->getToken();
+          continue;
+        default:
+          return $this->raiseError('Unexpected clause');
+      }
+    }
+    return $this->tree;
+  }
+    
+  /**
+   * Parses a SQL update statement.
+   */
+  function parseUpdate() {
+    $this->sql_object = new SqlUpdate();
+    $this->getToken();
+    if ($this->token == 'identifier') {
+      $this->tree['table_names'][] = $this->lexer->tokenText;
+    } 
+    else {
+      return $this->raiseError('Expected table name');
+    }
+    $this->getToken();
+    if ($this->token != 'set') {
+      return $this->raiseError('Expected "set"');
+    }
+    while (TRUE) {
+      $this->getToken();
+      if ($this->token != 'identifier') {
+        return $this->raiseError('Expected a column name');
+      }
+      $this->tree['column_names'][] = $this->lexer->tokenText;
+      $this->getToken();
+      if ($this->token != '=') {
+        return $this->raiseError('Expected =');
+      }
+      $this->getToken();
+      if (!$this->dialect->isVal($this->token)) {
+        return $this->raiseError('Expected a value');
+      }
+      $this->tree['values'][] = array('value' => $this->lexer->tokenText,
+        'type' => $this->token);
+      $this->getToken();
+      if ($this->token == 'where') {
+        $clause = $this->parseSearchClause();
+        //if (PEAR::isError($clause)) {
+        //return $clause;
+        //}
+        $this->tree['where_clause'] = $clause;
+        break;
+      } 
+      elseif ($this->token != ',') {
+        return $this->raiseError('Expected "where" or ","');
+      }
+    }
+    return $this->tree;
+  }
+    
+  /**
+   * Parses a SQL insert statement.
+   */
+  function parseInsert() {
+    $this->sql_object = new SqlInsert();
+    $this->getToken();
+    if ($this->token == 'into') {
+      $this->getToken();
+      if ($this->token == 'identifier') {
+        $this->tree['table_names'][] = $this->lexer->tokenText;
+        $this->getToken();
+      } 
+      else {
+        return $this->raiseError('Expected table name');
+      }
+      if ($this->token == '(') {
+        $parameters = $this->getParameters();
+        //if (PEAR::isError($results)) {
+        //return $results;
+        //} else {
+        if (sizeof($parameters['values'])) {
+          $this->tree['column_names'] = $parameters['values'];
+        }
+        //}
+        $this->getToken();
+      }
+      if ($this->token == 'values') {
+        $this->getToken();
+        $parameters = $this->getParameters();
+        //if (PEAR::isError($results)) {
+        //return $results;
+        //} else {
+        if (isset($this->tree['column_defs']) && (sizeof($this->tree['column_defs']) != sizeof($parameters['values']))) {
+          return $this->raiseError('field/value mismatch');
+        }
+        if (sizeof($parameters['values'])) {
+          foreach ($parameters['values'] as $key => $value) {
+            $parameters['values'][$key] = array('value' => $value,
+              'type' => $parameters['types'][$key]);
+          }
+          $this->tree['values'] = $parameters['values'];
+        } 
+        else {
+          return $this->raiseError('No fields to insert');
+        }
+        //}
+      } 
+      else {
+        return $this->raiseError('Expected "values"');
+      }
+    } 
+    else {
+      return $this->raiseError('Expected "into"');
+    }
+    return $this->tree;
+  }
+    
+  /**
+   * Parses a SQL delete statement.
+   */
+  function parseDelete() {
+    $this->sql_object = new SqlDelete();
+    $this->getToken();
+    if ($this->token != 'from') {
+      return $this->raiseError('Expected "from"');
+    }
+    $this->getToken();
+    if ($this->token != 'identifier') {
+      return $this->raiseError('Expected a table name');
+    }
+    $this->tree['table_names'][] = $this->lexer->tokenText;
+    $this->getToken();
+    if ($this->token != 'where') {
+      return $this->raiseError('Expected "where"');
+    }
+    $clause = $this->parseSearchClause();
+    $this->tree['where_clause'] = $clause;
+    return $this->tree;
+  }
+    
+  /**
+   * Parses a SQL create statement.
+   *
+   * @todo SqlCreate object doesn't actually exist.
+   */
+  function parseCreate() {
+    $this->sql_object = new SqlCreate();
+    $this->getToken();
+    switch ($this->token) {
+      case 'table':
+        $this->tree = array('command' => 'create_table');
+        $this->getToken();
+        if ($this->token == 'identifier') {
+          $this->tree['table_names'][] = $this->lexer->tokenText;
+          $fields = $this->parseFieldList();
+          //if (PEAR::isError($fields)) {
+          //return $fields;
+          //}
+          $this->tree['column_defs'] = $fields;
+          //                    $this->tree['column_names'] = array_keys($fields);
+        } 
+        else {
+          return $this->raiseError('Expected table name');
+        }
+        break;
+      case 'index':
+        $this->tree = array('command' => 'create_index');
+        break;
+      case 'constraint':
+        $this->tree = array('command' => 'create_constraint');
+        break;
+      case 'sequence':
+        $this->tree = array('command' => 'create_sequence');
+        break;
+      default:
+        return $this->raiseError('Unknown object to create');
+    }
+    return $this->tree;
+  }
+    
+  /**
+   * Parses a SQL drop statement.
+   *
+   * @todo SqlDrop object doesn't actually exists.
+   */
+  function parseDrop() {
+    $this->sql_object = new SqlDrop();
+    $this->getToken();
+    switch ($this->token) {
+      case 'table':
+        $this->tree = array('command' => 'drop_table');
+        $this->getToken();
+        if ($this->token != 'identifier') {
+          return $this->raiseError('Expected a table name');
+        }
+        $this->tree['table_names'][] = $this->lexer->tokenText;
+        $this->getToken();
+        if (($this->token == 'restrict') || ($this->token == 'cascade')) {
+          $this->tree['drop_behavior'] = $this->token;
+        }
+        $this->getToken();
+        if (!is_NULL($this->token)) {
+          return $this->raiseError('Unexpected token');
+        }
+        return $this->tree;
+        break;
+      case 'index':
+        $this->tree = array('command' => 'drop_index');
+        break;
+      case 'constraint':
+        $this->tree = array('command' => 'drop_constraint');
+        break;
+      case 'sequence':
+        $this->tree = array('command' => 'drop_sequence');
+        break;
+      default:
+        return $this->raiseError('Unknown object to drop');
+    }
+    return $this->tree;
   }
 
   /**
@@ -141,11 +446,11 @@ class SqlParser {
   }
 
   /**
-   * raiseError 
+   * Throw a well formatted error.
    * 
-   * @param mixed $message 
+   * @param $message 
    */
-  function raiseError($message) {
+  private function raiseError($message) {
     $end = 0;
     if ($this->lexer->string != '') {
       while (($this->lexer->lineBegin+$end < $this->lexer->stringLength) && ($this->lexer->string{$this->lexer->lineBegin+$end} != "\n")) {
@@ -160,10 +465,12 @@ class SqlParser {
     $message .= ' found: "' . $this->lexer->tokenText . '"';
     drupal_set_message("<pre>" . $message . "</pre>");
 
-    return FALSE; //PEAR::raiseError($message);
+    return FALSE;
   }
     
-  // getToken()
+  /**
+   * Get the next token from SqlLexer:lex().
+   */
   function getToken() {
     $this->token = $this->lexer->lex();
   }
@@ -329,8 +636,14 @@ class SqlParser {
     return $options;
   }
     
-  // parseSearchClause()
-  function parseSearchClause($subSearch = FALSE) {
+  /**
+   * Parses the where clause of an SQL statement.
+   *
+   * @param $sql_object
+   *   SqlObject to add clauses to.
+   * @param $subSearch
+   */
+  function parseSearchClause(SqlObject $sql_object, $subSearch = FALSE) {
     $clause = array();
     // parse the first argument
     $this->getToken();
@@ -659,305 +972,20 @@ class SqlParser {
     }
     return $opts;
   }
-    
-  // parseCreate()
-  function parseCreate() {
-    $this->getToken();
-    switch ($this->token) {
-      case 'table':
-        $this->tree = array('command' => 'create_table');
-        $this->getToken();
-        if ($this->token == 'identifier') {
-          $this->tree['table_names'][] = $this->lexer->tokenText;
-          $fields = $this->parseFieldList();
-          //if (PEAR::isError($fields)) {
-          //return $fields;
-          //}
-          $this->tree['column_defs'] = $fields;
-          //                    $this->tree['column_names'] = array_keys($fields);
-        } 
-        else {
-          return $this->raiseError('Expected table name');
-        }
-        break;
-      case 'index':
-        $this->tree = array('command' => 'create_index');
-        break;
-      case 'constraint':
-        $this->tree = array('command' => 'create_constraint');
-        break;
-      case 'sequence':
-        $this->tree = array('command' => 'create_sequence');
-        break;
-      default:
-        return $this->raiseError('Unknown object to create');
-    }
-    return $this->tree;
-  }
-    
-  // parseInsert()
-  function parseInsert() {
-    $this->getToken();
-    if ($this->token == 'into') {
-      $this->tree = array('command' => 'insert');
-      $this->getToken();
-      if ($this->token == 'identifier') {
-        $this->tree['table_names'][] = $this->lexer->tokenText;
-        $this->getToken();
-      } 
-      else {
-        return $this->raiseError('Expected table name');
-      }
-      if ($this->token == '(') {
-        $parameters = $this->getParameters();
-        //if (PEAR::isError($results)) {
-        //return $results;
-        //} else {
-        if (sizeof($parameters['values'])) {
-          $this->tree['column_names'] = $parameters['values'];
-        }
-        //}
-        $this->getToken();
-      }
-      if ($this->token == 'values') {
-        $this->getToken();
-        $parameters = $this->getParameters();
-        //if (PEAR::isError($results)) {
-        //return $results;
-        //} else {
-        if (isset($this->tree['column_defs']) && (sizeof($this->tree['column_defs']) != sizeof($parameters['values']))) {
-          return $this->raiseError('field/value mismatch');
-        }
-        if (sizeof($parameters['values'])) {
-          foreach ($parameters['values'] as $key => $value) {
-            $parameters['values'][$key] = array('value' => $value,
-              'type' => $parameters['types'][$key]);
-          }
-          $this->tree['values'] = $parameters['values'];
-        } 
-        else {
-          return $this->raiseError('No fields to insert');
-        }
-        //}
-      } 
-      else {
-        return $this->raiseError('Expected "values"');
-      }
-    } 
-    else {
-      return $this->raiseError('Expected "into"');
-    }
-    return $this->tree;
-  }
-    
-  // parseUpdate()
-  function parseUpdate() {
-    $this->getToken();
-    if ($this->token == 'identifier') {
-      $this->tree = array('command' => 'update');
-      $this->tree['table_names'][] = $this->lexer->tokenText;
-    } 
-    else {
-      return $this->raiseError('Expected table name');
-    }
-    $this->getToken();
-    if ($this->token != 'set') {
-      return $this->raiseError('Expected "set"');
-    }
-    while (TRUE) {
-      $this->getToken();
-      if ($this->token != 'identifier') {
-        return $this->raiseError('Expected a column name');
-      }
-      $this->tree['column_names'][] = $this->lexer->tokenText;
-      $this->getToken();
-      if ($this->token != '=') {
-        return $this->raiseError('Expected =');
-      }
-      $this->getToken();
-      if (!$this->dialect->isVal($this->token)) {
-        return $this->raiseError('Expected a value');
-      }
-      $this->tree['values'][] = array('value' => $this->lexer->tokenText,
-        'type' => $this->token);
-      $this->getToken();
-      if ($this->token == 'where') {
-        $clause = $this->parseSearchClause();
-        //if (PEAR::isError($clause)) {
-        //return $clause;
-        //}
-        $this->tree['where_clause'] = $clause;
-        break;
-      } 
-      elseif ($this->token != ',') {
-        return $this->raiseError('Expected "where" or ","');
-      }
-    }
-    return $this->tree;
-  }
-    
-  // parseDelete()
-  function parseDelete() {
-    $this->getToken();
-    if ($this->token != 'from') {
-      return $this->raiseError('Expected "from"');
-    }
-    $this->tree = array('command' => 'delete');
-    $this->getToken();
-    if ($this->token != 'identifier') {
-      return $this->raiseError('Expected a table name');
-    }
-    $this->tree['table_names'][] = $this->lexer->tokenText;
-    $this->getToken();
-    if ($this->token != 'where') {
-      return $this->raiseError('Expected "where"');
-    }
-    $clause = $this->parseSearchClause();
-    //if (PEAR::isError($clause)) {
-    //return $clause;
-    //}
-    $this->tree['where_clause'] = $clause;
-    return $this->tree;
-  }
-    
-  // parseDrop()
-  function parseDrop() {
-    $this->getToken();
-    switch ($this->token) {
-      case 'table':
-        $this->tree = array('command' => 'drop_table');
-        $this->getToken();
-        if ($this->token != 'identifier') {
-          return $this->raiseError('Expected a table name');
-        }
-        $this->tree['table_names'][] = $this->lexer->tokenText;
-        $this->getToken();
-        if (($this->token == 'restrict') || ($this->token == 'cascade')) {
-          $this->tree['drop_behavior'] = $this->token;
-        }
-        $this->getToken();
-        if (!is_NULL($this->token)) {
-          return $this->raiseError('Unexpected token');
-        }
-        return $this->tree;
-        break;
-      case 'index':
-        $this->tree = array('command' => 'drop_index');
-        break;
-      case 'constraint':
-        $this->tree = array('command' => 'drop_constraint');
-        break;
-      case 'sequence':
-        $this->tree = array('command' => 'drop_sequence');
-        break;
-      default:
-        return $this->raiseError('Unknown object to drop');
-    }
-    return $this->tree;
-  }
-    
-  function parseSelect($subSelect = FALSE) {
-    $this->tree = array('command' => 'select');
 
-    $this->parseSelectFields();
-    if ($this->token != 'from') {
-      return $this->raiseError('Expected "from"');
-    }
-
-    $this->parseTables();
-
-    while (!is_NULL($this->token) && (!$subSelect || $this->token != ')') && $this->token != ')') {
-      switch ($this->token) {
-        case 'where':
-          $clause = $this->parseSearchClause();
-          //if (PEAR::isError($clause)) {
-          //return $clause;
-          //}
-          $this->tree['where_clause'] = $clause;
-          break;
-        case 'order':
-          $this->getToken();
-          if ($this->token != 'by') {
-            return $this->raiseError('Expected "by"');
-          }
-          $this->getToken();
-          while ($this->token == 'identifier') {
-            $col = $this->lexer->tokenText;
-            $this->getToken();
-            if ($this->dialect->isSynonym($this->token)) {
-              $order = $this->dialect->getSynonym($this->token);
-              if (($order != 'asc') && ($order != 'desc')) {
-                return $this->raiseError('Unexpected token');
-              }
-              $this->getToken();
-            } 
-            else {
-              $order = 'asc';
-            }
-            if ($this->token == ',') {
-              $this->getToken();
-            }
-            $this->tree['sort_order'][$col] = $order;
-          }
-          break;
-        case 'limit':
-          $this->getToken();
-          if ($this->token != 'int_val') {
-            return $this->raiseError('Expected an integer value');
-          }
-          $length = $this->lexer->tokenText;
-          $start = 0;
-          $this->getToken();
-          if ($this->token == ',') {
-            $this->getToken();
-            if ($this->token != 'int_val') {
-              return $this->raiseError('Expected an integer value');
-            }
-            $start = $length;
-            $length = $this->lexer->tokenText;
-            $this->getToken();
-          }
-          $this->tree['limit_clause'] = array('start' => $start,
-            'length' => $length);
-          break;
-        case 'group':
-          $this->getToken();
-          if ($this->token != 'by') {
-            return $this->raiseError('Expected "by"');
-          }
-          $this->getToken();
-          while ($this->token == 'identifier') {
-            $col = $this->lexer->tokenText;
-            $this->getToken();
-            if ($this->token == ',') {
-              $this->getToken();
-            }
-            $this->tree['group_by'][] = $col;
-          }
-          break;
-        case 'having':
-          $clause = $this->parseSearchClause();
-          $this->tree['having_clause'] = $clause;
-          break;
-        case ';':
-          // @todo: handle multiple sql strings.
-          $this->getToken();
-          continue;
-        default:
-          return $this->raiseError('Unexpected clause');
-      }
-    }
-    return $this->tree;
-  }
-
-  private function parseSelectFields() {
+  /**
+   * Parses the select expression.
+   * 
+   * @param SqlObject $sql_object 
+   */
+  private function parseSelectFields(SqlObject $sql_object) {
     $this->getToken();
     if (($this->token == 'distinct') || ($this->token == 'all')) {
-      $this->tree['set_quantifier'] = $this->token;
+      $sql_object->setSetIdentifier($this->token);
       $this->getToken();
     }
     if ($this->token == '*') {
-      $this->tree['column_names'][] = '*';
+      $sql_object->addField($this->token);
       $this->getToken();
     } 
     elseif ($this->token == 'identifier' || $this->dialect->isFunc($this->token)) {
@@ -986,9 +1014,8 @@ class SqlParser {
             $columnAlias = '';
           }
 
-          $this->tree['column_tables'][] = $columnTable;
-          $this->tree['column_names'][] = $columnName;
-          $this->tree['column_aliases'][] = $columnAlias;
+          $sql_object->addField($columnName)->setTable($columnTable)->setAlias($columnAlias);
+
           if ($this->token != 'from') {
             $this->getToken();
           }
@@ -997,11 +1024,9 @@ class SqlParser {
           }
         }
         elseif ($this->dialect->isFunc($this->token)) {
+          // @todo handle functions w/ SqlObjects
           if (!isset($this->tree['set_quantifier'])) {
             $result = $this->parseFunctionOpts();
-            //if (PEAR::isError($result)) {
-            //return $result;
-            //}
             $this->tree['column_functions'][] = $result;
             $this->getToken();
 
@@ -1017,9 +1042,9 @@ class SqlParser {
             else {
               $columnAlias = '';
             }
-          } 
+          }
           else {
-            return $this->raiseError('Cannot use "' . $this->tree['set_quantifier'] . '" with ' . $this->token);
+            return $this->raiseError('Cannot use "' . $sql_object->set_quantifier . '" with ' . $this->token);
           }
         } 
         elseif ($this->token == ',') {
@@ -1037,66 +1062,11 @@ class SqlParser {
 
   /**
    * Parse query table reference clause list.
-   *
    */
-  function parseTables() {
+  function parseTables(SqlObject $sql_object) {
     $this->getToken();
     while ($this->token == 'identifier') {
-      $this->tree['table_names'][] = $this->lexer->tokenText;
-      $this->getToken();
-      if ($this->token == 'identifier') {
-        $this->tree['table_aliases'][] = $this->lexer->tokenText;
-        $this->getToken();
-      } 
-      elseif ($this->token == 'as') {
-        $this->getToken();
-        if ($this->token == 'identifier') {
-          $this->tree['table_aliases'][] = $this->lexer->tokenText;
-        } 
-        else {
-          return $this->raiseError('Expected table alias');
-        }
-        $this->getToken();
-      } 
-      else {
-        $this->tree['table_aliases'][] = '';
-      }
-      if ($this->token == 'on') {
-        $clause = $this->parseSearchClause();
-        //if (PEAR::isError($clause)) {
-        //return $clause;
-        //}
-        $this->tree['table_join_clause'][] = $clause;
-      } 
-      else if ($this->token == 'using') {
-        // Advanced to first (.
-        $this->getToken();
-        if ($this->token != '(') {
-          return $this->raiseError('Expected (');
-        }
-
-        // Get all join columns.
-        $columns = array();
-        do {
-          $this->getToken();
-          if ($this->token == 'identifier') {
-            $columns[] = $this->lexer->tokenText;
-          }
-        }
-        while ($this->token != ')');
-
-        $this->tree['table_join_clause'][] = array(
-          'type' => 'using',
-          'value' => array(
-            'columns' => $columns,
-          ),
-        );
-        $this->getToken();
-      }
-      else {
-        // @todo This is setting the join clause for the first table, which is unnecessary.
-        $this->tree['table_join_clause'][] = '';
-      }
+      // Parses join type.
       if ($this->token == ',') {
         $this->tree['table_join'][] = ',';
         $this->getToken();
@@ -1166,7 +1136,54 @@ class SqlParser {
         }
         $this->getToken();
       } 
-      elseif (($this->token == 'where') || ($this->token == 'order') || ($this->token == 'limit') || (is_NULL($this->token))) {
+
+      // Parses Table name and alias.
+      $table = &$sql_object->addTable($this->lexer->tokenText);
+      $this->getToken();
+      if ($this->token == 'identifier') {
+        $table->setAlias($this->lexer->tokenText);
+        $this->getToken();
+      } 
+      elseif ($this->token == 'as') {
+        $this->getToken();
+        if ($this->token == 'identifier') {
+          $table->setAlias($this->lexer->tokenText);
+        } 
+        else {
+          return $this->raiseError('Expected table alias');
+        }
+        $this->getToken();
+      } 
+
+      // Parses join condition.
+      if ($this->token == 'on') {
+        // @todo need to figure out how to properly parse and add this to
+        // SqlJoinCondition.
+        $join_condition =& $table->setJoinCondition($this->token);
+        $clause = $this->parseSearchClause();
+        $this->tree['table_join_clause'][] = $clause;
+      } 
+      else if ($this->token == 'using') {
+        // Advanced to first (.
+        $this->getToken();
+        if ($this->token != '(') {
+          return $this->raiseError('Expected (');
+        }
+
+        $join_condition =& $table->setJoinCondition($this->token);
+
+        // Get all join columns.
+        do {
+          $this->getToken();
+          if ($this->token == 'identifier') {
+            $join_condition->addColumn($this->lexer->tokenText);
+          }
+        }
+        while ($this->token != ')');
+        $this->getToken();
+      }
+
+      if (($this->token == 'where') || ($this->token == 'order') || ($this->token == 'limit') || (is_NULL($this->token))) {
         break;
       }
     }
