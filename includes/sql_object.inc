@@ -45,9 +45,9 @@ class SqlObject {
    * @return
    *   A reference to the new table object.
    */
-  function &addTable($table_name) {
+  function &addTable($table_name = NULL) {
     $this->tables[] = new SqlTable($table_name);
-    return end($this->tables[]);
+    return end($this->tables);
   }
 }
 
@@ -73,20 +73,18 @@ class SqlSelect extends SqlObject {
   public $fields;
 
   /**
-   * SQL conditions.
+   * SQL conditional
    *
-   * @var array
-   *   Array of SqlConditional objects.
+   * @var SqlConditional $conditional
    */
-  public $conditions;
+  public $conditional;
 
   /**
    * SQL group by clauses.
    *
-   * @var array
-   *   Array of SqlGroupByClause objects.
+   * @var SqlGroupByClause
    */
-  public $group_by_clauses;
+  public $group_by_clause;
 
   /**
    * SQL having clauses.
@@ -121,8 +119,8 @@ class SqlSelect extends SqlObject {
    * @param $set_identifier
    *   The set identifier of the query.
    */
-  function setSetIdentifier($set_identifier) {
-    $this->set_indentifier = $set_identifier;
+  public function setSetIdentifier($set_identifier) {
+    $this->set_identifier = $set_identifier;
   }
 
   /**
@@ -132,28 +130,67 @@ class SqlSelect extends SqlObject {
    * to add alias and table info to.
    *
    * @param field_name
-   *   The name of the field.
+   *   The name of the field or SqlField object.
    *
    * @return
    *   A SqlField object.
    */
-  function &addField($field_name) {
-    $this->fields[] = new SqlField($field_name);
+  public function &addField($field) {
+    if ($field instanceof SqlField) {
+      $this->fields[] = $field;
+    }
+    else {
+      $this->fields[] = new SqlField($field);
+    }
     return end($this->fields);
   }
 
   /**
-   * Add condition object to the list of conditons.
+   * Set condition to SqlConditional object
    *
-   * A reference to the condition object will be returned, whic hcan then be
-   * altered.
+   * Complex conditional clauses can be created by using subclauses in 
+   * SqlConditonal->arg1 or SqlConditionalal->arg2.
+   *
+   * @param SqlConditional $sql_condition
+   */
+  public function setConditional(SqlConditional $sql_conditional) {
+    $this->conditional = $sql_conditional;
+  }
+
+  /**
+   * Add group by object.
    *
    * @return
-   *   A SqlCondition object.
+   *   A SqlGroupByClause object.
    */
-  function &addCondition() {
-    $this->conditions[] = new SqlCondition();
-    return end($this->conditions);
+  public function addGroupBy(){
+    $this->group_by_clause = new SqlGroupByClause();
+    return $this->group_by_clause;
+  }
+
+  /**
+   * Add having object.
+   *
+   * @return
+   *   A SqlHavingClause object.
+   */
+  public function addHaving() {
+    $this->having_clauses[] = new SqlHavingClause();
+    return end($this->having_clauses);
+  }
+
+  /**
+   * Add order by object.
+   */
+  public function addOrderBy($column, $direction = 'asc') {
+    $this->order_by_clauses[] = new SqlOrderBy($column, $direction);
+  }
+
+  /**
+   * Add limit object.
+   */
+  public function addLimit($row_count, $offset = NULL) {
+    $this->limit = new SqlLimit($row_count, $offset);
   }
 }
 
@@ -170,28 +207,17 @@ class SqlInsert extends SqlObject {
    */
   public $columns;
 
-  /**
-   * SQL insert values.
-   *
-   * @var array
-   */
-  public $values;
-
   public function __construct() {
     $this->command = 'insert';
   }
 
   /**
-   * Sets column/value pair for insert statement.
+   * Adds column to insert statement.
    *
    * @param $column_name
-   *   The column name.
-   * @param $value
-   *   The value of the column.
    */
-  public function setColumnValue($column_name, $value) {
-    $this->columns[] = $column_name;
-    $this->values[] = $value;
+  public function addColumn(SqlColumn $column) {
+    $this->columns[] = $column;
   }
 }
 
@@ -205,39 +231,16 @@ class SqlUpdate extends SqlObject {
    * SQL insert columns.
    *
    * @var array
+   *   Array of SqlColumn objects
    */
   public $columns;
 
   /**
-   * SQL insert values.
+   * SQL conditional.
    *
-   * @var array
+   * @var SqlConditional
    */
-  public $values;
-
-  /**
-   * SQL conditions.
-   *
-   * @var array
-   *   Array of SqlConditional objects.
-   */
-  public $conditions;
-
-  /**
-   * SQL group by clauses.
-   *
-   * @var array
-   *   Array of SqlGroupByClause objects.
-   */
-  public $group_by_clauses;
-
-  /**
-   * SQL having clauses.
-   *
-   * @var array
-   *   Array of SqlHavingClause objects.
-   */
-  public $having_clauses;
+  public $conditional;
 
   /**
    * SQL order by clauses
@@ -260,16 +263,54 @@ class SqlUpdate extends SqlObject {
   }
 
   /**
-   * Sets column/value pair for insert statement.
+   * Adds column/value pair for update statement.
    *
    * @param $column_name
    *   The column name.
    * @param $value
    *   The value of the column.
+   * @param $type
+   *   The type of the column.
    */
-  public function setColumnValue($column_name, $value) {
-    $this->columns[] = $column_name;
-    $this->values[] = $value;
+  public function &addColumn($column_name, $value = NULL, $type = NULL) {
+    $column = new SqlColumn($column_name);
+
+    if ($value) {
+      $column->setValue($value);
+    }
+
+    if ($type) {
+      $column->setType($type);
+    }
+
+    $this->columns[] = $column;
+    return end($this->columns);
+  }
+
+  /**
+   * Set condition to SqlConditional object
+   *
+   * Complex conditional clauses can be created by using subclauses in 
+   * SqlConditonal->arg1 or SqlConditionalal->arg2.
+   *
+   * @param SqlConditional $sql_condition
+   */
+  public function setConditional(SqlConditional $sql_conditional) {
+    $this->conditional = $sql_conditional;
+  }
+
+  /**
+   * Add order by object.
+   */
+  public function addOrderBy($column, $direction = 'asc') {
+    $this->order_by_clauses[] = new SqlOrderBy($column, $direction);
+  }
+
+  /**
+   * Add limit object.
+   */
+  public function addLimit($row_count, $offset = NULL) {
+    $this->limit = new SqlLimit($row_count, $offset);
   }
 }
 
@@ -286,17 +327,70 @@ class SqlDelete extends SqlObject {
 }
 
 /**
- * Sql Field
+ * Sql Column
  *
- * Provides a container for storing SQL field info.
+ * Provides a container for storing SQL column info.
  */
-class SqlField {
+class SqlColumn {
   /**
-   * Field name
+   * Field name.
    *
    * @var string
    */
   public $name;
+
+  /**
+   * Field value.
+   *
+   * @var string
+   */
+  public $value;
+
+  /**
+   * Field type.
+   *
+   * @var string
+   */
+  public $type;
+
+  public function __construct($name) {
+    $this->name = $name;
+  }
+
+  /**
+   * Sets the value of the field.
+   *
+   * Used in insert and update statements.
+   *
+   * @param $value
+   *   The value of the field.
+   */
+  public function setValue($value) {
+    $this->value = $value;
+  }
+
+  /**
+   * Sets the type of the field.
+   *
+   * Valid types include:
+   * -text_val
+   * -int_val
+   * -placeholder
+   *
+   * @param $type
+   *   The type of the field.
+   */
+  public function setType($type) {
+    $this->type = $type;
+  }
+}
+
+/**
+ * Sql Field
+ *
+ * Provides a container for storing SQL field info.
+ */
+class SqlField extends SqlColumn {
 
   /**
    * Field table
@@ -311,10 +405,6 @@ class SqlField {
    * @var string
    */
   public $alias;
-
-  public function __construct($name) {
-    $this->name = $name;
-  }
 
   /**
    * Sets the table of this field.
@@ -334,6 +424,48 @@ class SqlField {
    */
   public function setAlias($alias) {
     $this->alias = $alias;
+  }
+}
+
+/**
+ * Sql Function
+ *
+ * Provides a container for storing SQL function info.
+ */
+class SqlFunction extends SqlField {
+  /**
+   * Function arguments.
+   *
+   * @var mixed
+   */
+  public $arguments;
+
+  /**
+   * Distinct operator
+   *
+   * @var boolean
+   */
+  public $distinct;
+
+  /**
+   * Adds a new argument to the function.
+   *
+   * @param string $argument
+   *   The argument to add to the function.
+   */
+  public function addArgument($argument) {
+    $this->arguments[] = $argument;
+  }
+
+  /**
+   * Sets the distinct operator.
+   *
+   * @param boolean $distinct
+   *   True to set the distinct operator, FALSE to unset the distinct operator.
+   *   Defaults to TRUE
+   */
+  public function setDistinct($distinct = TRUE) {
+    $this->distinct = $distinct;
   }
 }
 
@@ -367,9 +499,9 @@ class SqlTable {
   /**
    * Join condition
    *
-   * @var SqlJoinCondition
+   * @var SqlJoinConditional
    */
-  public $join_condition;
+  public $join_conditional;
 
   /**
    * Create a new table object.
@@ -377,7 +509,17 @@ class SqlTable {
    * @param $name
    *   The table name.
    */
-  protected function __construct($name) {
+  public function __construct($name = NULL) {
+    $this->name = $name;
+  }
+
+  /**
+   * Set the table name.
+   *
+   * @param $name
+   *   The table name.
+   */
+  public function setName($name) {
     $this->name = $name;
   }
 
@@ -416,15 +558,15 @@ class SqlTable {
   /**
    * Sets the join condition for this table.
    *
-   * Creates a new SqlJoinCondition and returns a reference to the created
+   * Creates a new SqlJoinConditional and returns a reference to the created
    * object.
    *
    * @param $type
    *   The type of join condition to create.
    */
   public function &setJoinCondition($type) {
-    $this->join_condition = new SqlJoinCondition($type);
-    return $this->join_condition;
+    $this->join_conditional = new SqlJoinConditional($type);
+    return $this->join_conditional;
   }
 }
 
@@ -435,30 +577,83 @@ class SqlTable {
  */
 class SqlConditional {
   /**
-   * Right arg in conditional
+   * Right arg in conditional.
    *
    * @var mixed
    */
   public $arg1;
 
   /**
-   * Left arg in conditonal
+   * Left arg in conditonal.
    *
    * @var mixed
    */
   public $arg2;
 
   /**
-   * Conditional Operator
+   * Conditional operator.
    *
    * @var string
    */
   public $operator;
 
-  public function __construct($arg1, $arg2, $operator = '=') {
+  /**
+   * Logical not opeartor.
+   *
+   * @var boolean
+   */
+  public $not_operator;
+
+  public function __construct($arg1 = NULL, $arg2 = NULL, $operator = NULL) {
     $this->arg1 = $arg1;
     $this->arg2 = $arg2;
     $this->operator = $operator;
+  }
+
+  /**
+   * Set the first argument of this condition.
+   *
+   * Can either be SqlField or SqlCondition object.
+   *
+   * @param $arg1
+   *   Either a SqlField or SqlCondition.
+   */
+  public function setArg1($arg1) {
+    $this->arg1 = $arg1;
+  }
+
+  /**
+   * Set the second argument of this condition.
+   *
+   * Can either be SqlField, SqlCondition or SqlSelect (for subselects) object.
+   * In the case of IN operators, the second argument could be an array of
+   * SqlField objects.
+   *
+   * @param $arg1
+   *   Either a SqlField or SqlCondition.
+   */
+  public function setArg2($arg2) {
+    $this->arg2 = $arg2;
+  }
+
+  /**
+   * Set the operator of this condition.
+   *
+   * @param $operator
+   *   The operator.
+   */
+  public function setOperator($operator) {
+    $this->operator = $operator;
+  }
+
+  /**
+   * Set the logical not flag for this condition.
+   *
+   * @param boolean $not_flag
+   *   Defaults to TRUE to set the not flag.
+   */
+  public function setNot($not_flag = TRUE) {
+    $this->not_flag = $not_flag;
   }
 }
 
@@ -494,7 +689,7 @@ class SqlJoinConditional extends SqlConditional {
    *   The column name to add.
    */
   function addColumn($column_name) {
-    if ($type == 'using') {
+    if ($this->type == 'using') {
       $this->columns[] = $column_name;
     }
   }
@@ -532,8 +727,7 @@ class SqlGroupByClause {
  *
  * Provides a container for storing SQL having clause info.
  */
-class SqlHavingClause extends SqlConditional {
-}
+class SqlHavingClause extends SqlConditional {}
 
 /**
  * Sql Order By
@@ -542,20 +736,22 @@ class SqlHavingClause extends SqlConditional {
  */
 class SqlOrderBy {
   /**
-   * Order by columns
+   * Order by column
    *
-   * @var array
+   * @var string
    */
-  public $columns;
+  public $column;
 
   /**
    * Order by direction
    *
-   * @var array
+   * @var string
    */
-  public $directions;
+  public $direction;
 
-  public function __construct() {
+  public function __construct($column, $direction) {
+    $this->column = $column;
+    $this->direction = $direction;
   }
 
   /**
@@ -563,7 +759,7 @@ class SqlOrderBy {
    *
    * @param $column
    *   The name of the column.
-   * @param $direcction
+   * @param $direction
    *   The direction to order the column by.
    */
   public function addColumn($column, $direction = 'asc') {

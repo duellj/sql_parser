@@ -92,50 +92,13 @@ class SqlLexer {
   }
 
   /**
-   * Skips the current character and returns the next character.
-   *
-   * Increases the start of the current token and the token pointer and returns
-   * the next single character of the new token, or NULL if the end of the 
-   * tokenized string is reached.
-
-   * @return
-   *   The next single character or NULL.
-   */
-  private function skip() {
-    ++$this->tokenStart;
-    return ($this->tokenPointer != $this->stringLength) ? $this->sql_string{$this->tokenPointer++} : NULL;
-  }
-
-  /**
-   * Reverts to the previous token and resets token length.
-   */
-  private function revert() {
-    $this->tokenPointer = $this->tokenStart;
-    $this->tokenLength = 0;
-  }
-
-  /**
-   * Checks if character is a comparison operator.
-   *
-   * @param $character
-   *   A single character.
-   *
-   * @return
-   *   TRUE if $character is a comparison operator, FALSE otherwise.
-   * @todo Should this live in SqlDialect?
-   */
-  private function isComparisonOperator($character) {
-    return (($character == '<') || ($character == '>') || ($character == '=') || ($character == '!'));
-  }
-
-  /**
    * Pushes back a token, so the very next call to lex() will return that token.
    *
    * Calls to this function will be ignored if there is no lookahead specified
    * to the constructor, or the pushBack() function has already been called the
    * maximum number of token's that can be looked ahead.
    */
-  private function pushBack() {
+  public function pushBack() {
     if ($this->lookahead > 0 && count($this->tokenStack) > 0 && $this->stackPointer > 0) {
       $this->stackPointer--;
     }
@@ -199,6 +162,43 @@ class SqlLexer {
     else {
       return $this->nextToken();
     }
+  }
+
+  /**
+   * Skips the current character and returns the next character.
+   *
+   * Increases the start of the current token and the token pointer and returns
+   * the next single character of the new token, or NULL if the end of the 
+   * tokenized string is reached.
+
+   * @return
+   *   The next single character or NULL.
+   */
+  private function skip() {
+    ++$this->tokenStart;
+    return ($this->tokenPointer != $this->stringLength) ? $this->sql_string{$this->tokenPointer++} : NULL;
+  }
+
+  /**
+   * Reverts to the previous token and resets token length.
+   */
+  private function revert() {
+    $this->tokenPointer = $this->tokenStart;
+    $this->tokenLength = 0;
+  }
+
+  /**
+   * Checks if character is a comparison operator.
+   *
+   * @param $character
+   *   A single character.
+   *
+   * @return
+   *   TRUE if $character is a comparison operator, FALSE otherwise.
+   * @todo Should this live in SqlDialect?
+   */
+  private function isComparisonOperator($character) {
+    return (($character == '<') || ($character == '>') || ($character == '=') || ($character == '!'));
   }
 
   /**
