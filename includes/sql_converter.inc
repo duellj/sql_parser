@@ -13,12 +13,12 @@
  * @todo: Add support for converting into actual DBTNG objects (new class).
  */
 class SqlConverter {
-  protected $parsed_sql;
+  protected $sql_object;
 
   protected $output = array();
 
-  public function __construct($parsed_sql) {
-    $this->parsed_sql = $parsed_sql;
+  public function __construct(SqlObject $sql_object) {
+    $this->sql_object = $sql_object;
   }
 
   /**

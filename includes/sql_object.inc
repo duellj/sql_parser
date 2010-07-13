@@ -27,7 +27,7 @@ class SqlObject {
   public $tables;
 
   /**
-   * SQL placeholders
+   * SQL placeholder count.
    *
    * @var array
    */
@@ -48,6 +48,16 @@ class SqlObject {
   function &addTable($table_name = NULL) {
     $this->tables[] = new SqlTable($table_name);
     return end($this->tables);
+  }
+
+  /**
+   * Returns the number of placeholders in this SQL statement.
+   *
+   * @return int
+   *   The number of placeholders.
+   */
+  function numPlaceholders() {
+    return $this->placeholders;
   }
 }
 

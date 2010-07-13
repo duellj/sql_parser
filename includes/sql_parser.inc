@@ -50,6 +50,13 @@ class SqlParser {
   protected $sql_object;
 
   /**
+   * The number of placeholders in the parsed sql.
+   *
+   * @var int
+   */
+  protected $placeholders;
+
+  /**
    * __construct 
    * 
    * @param $string 
@@ -91,21 +98,37 @@ class SqlParser {
       case NULL:
         // NULL == end of string
         return $this->raiseError('Nothing to do');
+
       case 'select':
-        return $this->parseSelect();
+        $sql_object = $this->parseSelect();
+        break;
+
       case 'update':
-        return $this->parseUpdate();
+        $sql_object = $this->parseUpdate();
+        break;
+
       case 'insert':
-        return $this->parseInsert();
+        $sql_object = $this->parseInsert();
+        break;
+
       case 'delete':
-        return $this->parseDelete();
+        $sql_object = $this->parseDelete();
+        break;
+
       case 'create':
-        return $this->parseCreate();
+        $sql_object = $this->parseCreate();
+        break;
+
       case 'drop':
-        return $this->parseDrop();
+        $sql_object = $this->parseDrop();
+        break;
+
       default:
         return $this->raiseError('Unknown action :' . $this->token);
+        break;
     }
+    $sql_object->placeholders = $this->placeholders;
+    return $sql_object;
   }
     
   /**
@@ -456,6 +479,11 @@ class SqlParser {
    */
   function getToken() {
     $this->token = $this->lexer->lex();
+
+    // If the token is a placeholder, increase the placeholder count.
+    if ($this->token == 'placeholder') {
+      $this->placeholders++;
+    }
   }
     
   /**
