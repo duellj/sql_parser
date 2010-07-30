@@ -435,6 +435,21 @@ class SqlField extends SqlColumn {
   public function setAlias($alias) {
     $this->alias = $alias;
   }
+
+  /**
+   * Prints out a valid representation of this field.
+   */
+  public function __toString() {
+    if ($this->alias) {
+      return (string)$this->alias;
+    }
+    elseif ($this->table) {
+      return $this->table . '.' . $this->name;
+    }
+    else {
+      return (string)$this->name;
+    }
+  }
 }
 
 /**
@@ -798,7 +813,7 @@ class SqlLimit {
    */
   public $offset;
 
-  public function __construct($row_count, $offset = NULL) {
+  public function __construct($row_count, $offset = 0) {
     $this->row_count = $row_count;
     $this->offset = $offset;
   }

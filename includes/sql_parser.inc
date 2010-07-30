@@ -543,7 +543,7 @@ class SqlParser {
     $foundSubclause = FALSE;
     if ($this->token == '(') {
       // Argument is a subclause.
-      $sql_conditional->setArg1($this->parseSearchClause(TRUE));
+      $sql_conditional->setArg1($this->parseSearchClause());
       if ($this->token != ')') {
         return $this->raiseError('Expected ")"');
       }
@@ -640,7 +640,7 @@ class SqlParser {
             return $this->raiseError('Expected a column name or value');
           }
           if ($this->token == '(') {
-            $sql_conditional->arg2($this->parseSearchClause(TRUE));
+            $sql_conditional->arg2($this->parseSearchClause());
             $this->getToken();
             if ($this->token != ')') {
               return $this->raiseError('Expected ")"');
@@ -1117,10 +1117,9 @@ class SqlParser {
    * @param SqlObject $sql_object
    */
   protected function parseTables(SqlObject &$sql_object) {
-    $table = &$sql_object->addTable();
-
     $this->getToken();
     while (TRUE) {
+      $table = &$sql_object->addTable();
       // Parses join type.
       if (in_array($this->token, array(',', 'inner', 'cross', 'left', 'right', 'outer', 'natural', 'join'))) {
         if ($this->token == ',') {
