@@ -103,7 +103,7 @@ class SqlConverter {
       foreach ($this->sql_object->order_by as $order) {
         $this->output[] = "\t->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
-    } 
+    }
 
     if ($this->sql_object->limit) {
       $this->output[] = "\t->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
@@ -124,7 +124,7 @@ class SqlConverter {
   protected function convertUpdate() {
     $this->output[] = "db_update('" . $this->sql_object->tables[0]->name . "')";
 
-    $this->convertFields();;
+    $this->convertFields();
 
     if ($this->sql_object->conditional) {
       $this->convertConditionals($this->sql_object->conditional);
@@ -134,7 +134,7 @@ class SqlConverter {
       foreach ($this->sql_object->order_by as $order) {
         $this->output[] = "\t->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
-    } 
+    }
 
     if ($this->sql_object->limit) {
       $this->output[] = "\t->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
@@ -144,8 +144,7 @@ class SqlConverter {
   /**
    * Convert delete query.
    */
-  protected function convertDelete() {
-  }
+  protected function convertDelete() { }
 
   /**
    * Convert Select query fields.
@@ -306,7 +305,7 @@ class SqlConverter {
   /**
    * Transform conditional fragment into conditional object string.
    *
-   * If conditional fragment is a subclause, pass it back to 
+   * If conditional fragment is a subclause, pass it back to
    * coder_upgrade_convert_conditional.
    *
    * @param SqlConditional $conditionals

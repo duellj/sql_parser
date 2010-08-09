@@ -14,7 +14,7 @@
  *
  * @todo Document, Document, Document!!
  * @todo Scale down the beast that is nextToken().
- * 
+ *
  */
 class SqlLexer {
   // array of valid tokens for the lexer to recognize
@@ -47,12 +47,12 @@ class SqlLexer {
   var $tokenStack = array();
   var $stackPointer = 0;
 
-  public function __construct($sql_string = '', $lookahead=0) {
+  public function __construct($sql_string = '', $lookahead = 0) {
     $this->sql_string = $sql_string;
     $this->stringLength = strlen($sql_string);
     $this->lookahead = $lookahead;
   }
-    
+
   /**
    * Sets the current token text, pointer and skip text if necessary.
    *
@@ -76,7 +76,7 @@ class SqlLexer {
    *
    * @return
    *   The next single character or NULL.
-   */ 
+   */
   private function get() {
     ++$this->tokenPointer;
     ++$this->tokenLength;
@@ -132,7 +132,7 @@ class SqlLexer {
         $this->stackPointer++;
         return $token;
 
-      } 
+      }
       else {
 
         // If $tokenStack is full (equal to lookahead), pop the oldest
@@ -140,7 +140,7 @@ class SqlLexer {
         if ($this->stackPointer == $this->lookahead) {
           // For some reason array_shift and
           // array_pop screw up the indexing, so we do it manually.
-          for ($i=0; $i < (count($this->tokenStack) - 1); $i++) {
+          for ($i = 0; $i < (count($this->tokenStack) - 1); $i++) {
             $this->tokenStack[$i] = $this->tokenStack[$i + 1];
           }
 
@@ -168,7 +168,7 @@ class SqlLexer {
    * Skips the current character and returns the next character.
    *
    * Increases the start of the current token and the token pointer and returns
-   * the next single character of the new token, or NULL if the end of the 
+   * the next single character of the new token, or NULL if the end of the
    * tokenized string is reached.
 
    * @return
@@ -215,7 +215,7 @@ class SqlLexer {
     $this->tokenAbsStart = $this->tokenStart;
 
     while (TRUE) {
-      switch($state) {
+      switch ($state) {
         // State 0 : Start of token.
         case 0:
           $this->tokenPointer = $this->tokenStart;
@@ -237,8 +237,9 @@ class SqlLexer {
                 $c = $this->skip();
 
                 // If not DOS newline
-                if($c != "\n")
+                if ($c != "\n") {
                   $this->unget();
+                }
               }
               ++$this->lineNumber;
               $this->lineBegin = $this->tokenPointer;
@@ -254,7 +255,7 @@ class SqlLexer {
               $this->tokenText = $t;
               $this->tokenStart = $this->tokenPointer;
               return $this->tokenText;
-            } 
+            }
             else {
               $this->unget();
               // Unknown token.  Revert to single chararacter.
@@ -283,7 +284,7 @@ class SqlLexer {
           }
 
           // Real number or integer.
-          if (ctype_digit(ord($c))) { 
+          if (ctype_digit(ord($c))) {
             $state = 5;
             break;
           }
@@ -296,19 +297,19 @@ class SqlLexer {
                 $this->tokenText = '...';
                 $this->tokenStart = $this->tokenPointer;
                 return $this->tokenText;
-              } 
+              }
               else {
                 // Unknown token.  Revert to single character.
                 $state = 999;
                 break;
               }
-            } 
+            }
             // Real number.
             elseif (ctype_digit(ord($t))) {
               $this->unget();
               $state = 7;
               break;
-            } 
+            }
             else { // period
               $this->unget();
             }
@@ -326,7 +327,7 @@ class SqlLexer {
             if ($t == '-') {
               $state = 14;
               break;
-            } 
+            }
             else { // negative number
               $this->unget();
               $state = 5;
@@ -371,7 +372,7 @@ class SqlLexer {
           $testToken = strtolower($this->tokenText);
           if (isset($this->symbols[$testToken])) {
             return $testToken;
-          } 
+          }
           else {
             return 'identifier';
           }
@@ -383,21 +384,21 @@ class SqlLexer {
           if (ctype_digit(ord($c))) {
             $state = 5;
             break;
-          } 
+          }
           elseif ($c == '.') {
             $t = $this->get();
-            if($t == '.') { // ellipsis
+            if ($t == '.') { // ellipsis
               $this->unget();
-            } 
+            }
             else { // real number
               $state = 7;
               break;
             }
-          } 
+          }
           elseif (ctype_alpha(ord($c))) { // number must end with non-alpha character
             $state = 999;
             break;
-          } 
+          }
           else {
             // complete number
             $state = 6;
@@ -454,7 +455,7 @@ class SqlLexer {
         case 11:
           $this->unget();
           $this->setToken();
-          if($this->tokenText) {
+          if ($this->tokenText) {
             return $this->tokenText;
           }
           $state = 999;
@@ -475,7 +476,7 @@ class SqlLexer {
                   $bail = TRUE;
                 }
                 break;
-              // String placeholder
+                // String placeholder
               case '%':
                 if ($this->get() == 's') {
                   $this->unget();
@@ -523,7 +524,7 @@ class SqlLexer {
             // We need to skip all the text.
             $this->tokenStart = $this->tokenPointer;
             $state = 0;
-          } 
+          }
           else {
             $state = 14;
           }
@@ -532,21 +533,21 @@ class SqlLexer {
         // State 15: Exponent Sign in Scientific Notation.
         case 15:
           $c = $this->get();
-          if($c == '-' || $c == '+') {
+          if ($c == '-' || $c == '+') {
             $state = 16;
             break;
           }
           $state = 999;
           break;
 
-        // state 16: Exponent Value-first digit in Scientific Notation
+        // State 16: Exponent Value-first digit in Scientific Notation
         case 16:
           $c = $this->get();
           if (ctype_digit(ord($c))) {
             $state = 17;
             break;
           }
-          $state = 999;  // if no digit, then token is unknown
+          $state = 999; // if no digit, then token is unknown
           break;
 
         // State 17: Exponent Value in Scientific Notation.
@@ -556,7 +557,7 @@ class SqlLexer {
             $state = 17;
             break;
           }
-          $state = 8;  // At least 1 exponent digit was required
+          $state = 8; // At least 1 exponent digit was required
           break;
 
         // State 18 : Incomplete System Variable.

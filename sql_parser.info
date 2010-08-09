@@ -1,4 +1,11 @@
 ; $Id$
 name = SQL Parser
 description = Parser SQL strings into Drupal database objects.
-core = 6.x
+core = 7.x
+
+files[] = sql_parser.module
+files[] = includes/sql_converter.inc
+files[] = includes/sql_dialect.inc
+files[] = includes/sql_lexer.inc
+files[] = includes/sql_object.inc
+files[] = includes/sql_parser.inc

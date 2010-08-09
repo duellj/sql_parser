@@ -7,7 +7,7 @@
 
 /**
  * Sql Object
- * 
+ *
  * Provides a container for storing a SQL statement.
  */
 class SqlObject {
@@ -158,7 +158,7 @@ class SqlSelect extends SqlObject {
   /**
    * Set condition to SqlConditional object
    *
-   * Complex conditional clauses can be created by using subclauses in 
+   * Complex conditional clauses can be created by using subclauses in
    * SqlConditonal->arg1 or SqlConditionalal->arg2.
    *
    * @param SqlConditional $sql_condition
@@ -173,7 +173,7 @@ class SqlSelect extends SqlObject {
    * @return
    *   A SqlGroupByClause object.
    */
-  public function addGroupBy(){
+  public function addGroupBy() {
     $this->group_by_clause = new SqlGroupByClause();
     return $this->group_by_clause;
   }
@@ -300,7 +300,7 @@ class SqlUpdate extends SqlObject {
   /**
    * Set condition to SqlConditional object
    *
-   * Complex conditional clauses can be created by using subclauses in 
+   * Complex conditional clauses can be created by using subclauses in
    * SqlConditonal->arg1 or SqlConditionalal->arg2.
    *
    * @param SqlConditional $sql_condition
@@ -441,13 +441,13 @@ class SqlField extends SqlColumn {
    */
   public function __toString() {
     if ($this->alias) {
-      return (string)$this->alias;
+      return (string) $this->alias;
     }
     elseif ($this->table) {
       return $this->table . '.' . $this->name;
     }
     else {
-      return (string)$this->name;
+      return (string) $this->name;
     }
   }
 }
@@ -733,8 +733,7 @@ class SqlGroupByClause {
    */
   public $columns;
 
-  public function __construct() {
-  }
+  public function __construct() { }
 
   /**
    * Adds a column to the group by clause
@@ -752,7 +751,7 @@ class SqlGroupByClause {
  *
  * Provides a container for storing SQL having clause info.
  */
-class SqlHavingClause extends SqlConditional {}
+class SqlHavingClause extends SqlConditional { }
 
 /**
  * Sql Order By
