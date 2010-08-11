@@ -145,6 +145,11 @@ class SqlConverter {
    * Convert delete query.
    */
   protected function convertDelete() {
+    $this->output[] = "db_delete('" . $this->sql_object->tables[0]->name . "')";
+
+    if ($this->sql_object->conditional) {
+      $this->convertConditionals($this->sql_object->conditional);
+    }
   }
 
   /**
@@ -326,7 +331,7 @@ class SqlConverter {
       $output = str_repeat("  ", $level) . "->condition('" . $conditional->arg1;
 
       // Determine the correct arg2 for the conditional
-      if ($conditional->arg1->type == 'placeholder') {
+      if ($conditional->arg2->type == 'placeholder') {
         $value = array_shift($this->arguments);
 
         // IN operator now just takes an array, rather than imploded array.

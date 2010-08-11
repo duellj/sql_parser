@@ -26,7 +26,7 @@ class SqlLexer {
    *
    * @var string
    */
-  private $sql_string;
+  public $sql_string;
 
   var $tokenPointer = 0;
   var $tokenStart = 0;

@@ -331,8 +331,27 @@ class SqlUpdate extends SqlObject {
  */
 class SqlDelete extends SqlObject {
 
+  /**
+   * SQL conditional.
+   *
+   * @var SqlConditional
+   */
+  public $conditional;
+
   public function __construct() {
     $this->command = 'delete';
+  }
+
+  /**
+   * Set condition to SqlConditional object
+   *
+   * Complex conditional clauses can be created by using subclauses in 
+   * SqlConditonal->arg1 or SqlConditionalal->arg2.
+   *
+   * @param SqlConditional $sql_condition
+   */
+  public function setConditional(SqlConditional $sql_conditional) {
+    $this->conditional = $sql_conditional;
   }
 }
 

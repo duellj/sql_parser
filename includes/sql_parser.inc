@@ -127,8 +127,10 @@ class SqlParser {
         return $this->raiseError('Unknown action :' . $this->token);
         break;
     }
-    $sql_object->placeholders = $this->placeholders;
-    return $sql_object;
+    if ($sql_object) {
+      $sql_object->placeholders = $this->placeholders;
+      return $sql_object;
+    }
   }
     
   /**
@@ -211,7 +213,7 @@ class SqlParser {
 
     $this->parseSetFields($sql_object);
 
-    while (!is_null($this->token) && (!$subSelect || $this->token != ')') && $this->token != ')') {
+    while (!is_null($this->token) && $this->token != ')' && $this->token != ')') {
       switch ($this->token) {
         case 'where':
           $conditional = $this->parseSearchClause();
@@ -561,15 +563,7 @@ class SqlParser {
     } 
     else {
       // Argument is a field.
-      list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
-      if (!$columnName) {
-        $columnName = $columnTable;
-        unset($columnTable);
-      }
-      $field = new SqlField($columnName);
-      $field->setTable($columnTable);
-      $field->setType($this->token);
-
+      $field = $this->parseField();
       $sql_conditional->setArg1($field);
     }
 
@@ -650,15 +644,7 @@ class SqlParser {
             }
           } 
           else {
-            list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
-            if (!$columnName) {
-              $columnName = $columnTable;
-              unset($columnTable);
-            }
-            $field = new SqlField($columnName);
-            $field->setTable($columnTable);
-            $field->setType($this->token);
-
+            $field = $this->parseField();
             $sql_conditional->setArg2($field);
           }
           break;
@@ -950,6 +936,27 @@ class SqlParser {
   }
     
   /**
+   * Parses field into a new field object.
+   *
+   * @return SqlField
+   */
+  protected function parseField() {
+    if (strpos($this->lexer->tokenText, '.')) {
+      list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
+    }
+    else {
+      $columnName = $this->lexer->tokenText;
+      $columnTable = '';
+    }
+
+    $field = new SqlField($columnName);
+    $field->setTable($columnTable);
+    $field->setType($this->token);
+
+    return $field;
+  }
+
+  /**
    * Parses function.
    *
    * @return SqlFunction
@@ -1059,7 +1066,7 @@ class SqlParser {
           list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
           if (!$columnName) {
             $columnName = $columnTable;
-            unset($columnTable);
+            $columnTable = '';
           }
           $column = &$sql_object->addField($columnName);
           $column->setTable($columnTable);
