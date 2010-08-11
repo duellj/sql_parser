@@ -437,7 +437,7 @@ class SqlField extends SqlColumn {
   }
 
   /**
-   * Prints out a valid representation of this field.
+   * Prints out a valid string representation of this field.
    */
   public function __toString() {
     if ($this->alias) {
@@ -679,6 +679,13 @@ class SqlConditional {
    */
   public function setNot($not_flag = TRUE) {
     $this->not_flag = $not_flag;
+  }
+
+  /**
+   * Prints out a valid string representation of this condition.
+   */
+  public function __toString() {
+    return $this->arg1 . ' ' . ($this->not_operator ? ' ' . $this->not_operator . ' ' : '') . $this->operator . ' ' . $this->arg2;
   }
 }
 
