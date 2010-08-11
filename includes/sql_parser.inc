@@ -324,23 +324,26 @@ class SqlParser {
    * Parses a SQL delete statement.
    */
   function parseDelete() {
-    $this->sql_object = new SqlDelete();
+    $sql_object = new SqlDelete();
+
     $this->getToken();
     if ($this->token != 'from') {
       return $this->raiseError('Expected "from"');
     }
+
     $this->getToken();
     if ($this->token != 'identifier') {
       return $this->raiseError('Expected a table name');
     }
-    $this->tree['table_names'][] = $this->lexer->tokenText;
+    $sql_object->addTable($this->lexer->tokenText);
+
     $this->getToken();
-    if ($this->token != 'where') {
-      return $this->raiseError('Expected "where"');
+    if ($this->token == 'where') {
+      $conditional = $this->parseSearchClause();
+      $sql_object->setConditional($conditional);
     }
-    $clause = $this->parseSearchClause();
-    $this->tree['where_clause'] = $clause;
-    return $this->tree;
+
+    return $sql_object;
   }
     
   /**
@@ -458,14 +461,14 @@ class SqlParser {
    */
   protected function raiseError($message) {
     $end = 0;
-    if ($this->lexer->string != '') {
-      while (($this->lexer->lineBegin+$end < $this->lexer->stringLength) && ($this->lexer->string{$this->lexer->lineBegin+$end} != "\n")) {
+    if ($this->lexer->sql_string != '') {
+      while (($this->lexer->lineBegin+$end < $this->lexer->stringLength) && ($this->lexer->sql_string{$this->lexer->lineBegin+$end} != "\n")) {
         ++$end;
       }
     }
 
     $message = 'Parse error: ' . $message . ' on line ' . ($this->lexer->lineNumber + 1) . "\n";
-    $message .= substr($this->lexer->string, $this->lexer->lineBegin, $end) . "\n";
+    $message .= substr($this->lexer->sql_string, $this->lexer->lineBegin, $end) . "\n";
     $length = is_null($this->token) ? 0 : strlen($this->lexer->tokenText);
     $message .= str_repeat(' ', abs($this->lexer->tokenPointer - $this->lexer->lineBegin - $length)) . "^";
     $message .= ' found: "' . $this->lexer->tokenText . '"';
@@ -1285,7 +1288,7 @@ class SqlParser {
    */
   protected function parseLimit(SqlObject $sql_object) {
     $this->getToken();
-    if ($this->token != 'int_val') {
+    if ($this->token != 'int_val' && $this->token != 'placeholder') {
       return $this->raiseError('Expected an integer value');
     }
     $row_count = $this->lexer->tokenText;
@@ -1293,7 +1296,7 @@ class SqlParser {
     $this->getToken();
     if ($this->token == ',') {
       $this->getToken();
-      if ($this->token != 'int_val') {
+      if ($this->token != 'int_val' && $this->token != 'placeholder') {
         return $this->raiseError('Expected an integer value');
       }
       $offset = $row_count;
