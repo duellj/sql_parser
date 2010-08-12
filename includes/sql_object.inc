@@ -27,7 +27,7 @@ class SqlObject {
   public $tables;
 
   /**
-   * SQL placeholder count.
+   * The array of all placeholders in the SQL statement.
    *
    * @var array
    */
@@ -57,7 +57,7 @@ class SqlObject {
    *   The number of placeholders.
    */
   function numPlaceholders() {
-    return $this->placeholders;
+    return count($this->placeholders);
   }
 }
 

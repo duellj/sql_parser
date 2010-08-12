@@ -15,9 +15,9 @@
  * @todo Document, Document, Document!!
  * @todo Add example code samples.
  * @todo Update classes to use php5 standards.
- * @todo Extract symbols into SqlDialect.
  * @todo Provide sane exception handling in raiseError().
  * @todo Parse multiple SQL strings.
+ * @todo Parse CREATE and DROP statements.
  */
 class SqlParser {
 
@@ -50,9 +50,9 @@ class SqlParser {
   protected $sql_object;
 
   /**
-   * The number of placeholders in the parsed sql.
+   * The array of all placeholders found in the parsed SQL statement.
    *
-   * @var int
+   * @var array
    */
   protected $placeholders;
 
@@ -433,7 +433,7 @@ class SqlParser {
     while ($this->token != ')') {
       $this->getToken();
       if ($this->dialect->isVal($this->token) || ($this->token == 'identifier')) {
-        $field = new &SqlField($this->lexer->tokenText);
+        $field = new SqlField($this->lexer->tokenText);
         $field->setType = $this->token;
         $parameters[] = $field;
       }
@@ -458,14 +458,14 @@ class SqlParser {
    */
   protected function raiseError($message) {
     $end = 0;
-    if ($this->lexer->string != '') {
-      while (($this->lexer->lineBegin + $end < $this->lexer->stringLength) && ($this->lexer->string{$this->lexer->lineBegin + $end} != "\n")) {
+    if ($this->lexer->sql_string != '') {
+      while (($this->lexer->lineBegin + $end < $this->lexer->stringLength) && ($this->lexer->sql_string{$this->lexer->lineBegin + $end} != "\n")) {
         ++$end;
       }
     }
 
     $message = 'Parse error: ' . $message . ' on line ' . ($this->lexer->lineNumber + 1) . "\n";
-    $message .= substr($this->lexer->string, $this->lexer->lineBegin, $end) . "\n";
+    $message .= substr($this->lexer->sql_string, $this->lexer->lineBegin, $end) . "\n";
     $length = is_null($this->token) ? 0 : strlen($this->lexer->tokenText);
     $message .= str_repeat(' ', abs($this->lexer->tokenPointer - $this->lexer->lineBegin - $length)) . "^";
     $message .= ' found: "' . $this->lexer->tokenText . '"';
@@ -480,9 +480,9 @@ class SqlParser {
   function getToken() {
     $this->token = $this->lexer->lex();
 
-    // If the token is a placeholder, increase the placeholder count.
+    // If the token is a placeholder, add to the placeholder array
     if ($this->token == 'placeholder') {
-      $this->placeholders++;
+      $this->placeholders[] = $this->lexer->tokenText;
     }
   }
 
