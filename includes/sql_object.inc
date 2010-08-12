@@ -331,8 +331,27 @@ class SqlUpdate extends SqlObject {
  */
 class SqlDelete extends SqlObject {
 
+  /**
+   * SQL conditional.
+   *
+   * @var SqlConditional
+   */
+  public $conditional;
+
   public function __construct() {
     $this->command = 'delete';
+  }
+
+  /**
+   * Set condition to SqlConditional object
+   *
+   * Complex conditional clauses can be created by using subclauses in 
+   * SqlConditonal->arg1 or SqlConditionalal->arg2.
+   *
+   * @param SqlConditional $sql_condition
+   */
+  public function setConditional(SqlConditional $sql_conditional) {
+    $this->conditional = $sql_conditional;
   }
 }
 
@@ -437,7 +456,7 @@ class SqlField extends SqlColumn {
   }
 
   /**
-   * Prints out a valid representation of this field.
+   * Prints out a valid string representation of this field.
    */
   public function __toString() {
     if ($this->alias) {
@@ -679,6 +698,13 @@ class SqlConditional {
    */
   public function setNot($not_flag = TRUE) {
     $this->not_flag = $not_flag;
+  }
+
+  /**
+   * Prints out a valid string representation of this condition.
+   */
+  public function __toString() {
+    return $this->arg1 . ' ' . ($this->not_operator ? ' ' . $this->not_operator . ' ' : '') . $this->operator . ' ' . $this->arg2;
   }
 }
 

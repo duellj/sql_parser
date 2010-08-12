@@ -67,7 +67,7 @@ class SqlConverter {
         $this->convertDelete();
         break;
     }
-    $this->output[] = "\t->execute()";
+    $this->output[] = "  ->execute()";
 
     return join("\n", $this->output);
   }
@@ -91,7 +91,7 @@ class SqlConverter {
 
     if ($this->sql_object->group_by_clause) {
       foreach ($this->sql_object->group_by_clause->columns as $group_by_column) {
-        $this->output[] = "\t->groupBy($group_by_column)";
+        $this->output[] = "  ->groupBy($group_by_column)";
       }
 
       if ($this->sql_object->having_clause) {
@@ -101,12 +101,12 @@ class SqlConverter {
 
     if ($this->sql_object->order_by) {
       foreach ($this->sql_object->order_by as $order) {
-        $this->output[] = "\t->orderBy('" . $order->column . "', '" . $order->direction . "')";
+        $this->output[] = "  ->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
     }
 
     if ($this->sql_object->limit) {
-      $this->output[] = "\t->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
+      $this->output[] = "  ->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
     }
   }
 
@@ -132,19 +132,25 @@ class SqlConverter {
 
     if ($this->sql_object->order_by) {
       foreach ($this->sql_object->order_by as $order) {
-        $this->output[] = "\t->orderBy('" . $order->column . "', '" . $order->direction . "')";
+        $this->output[] = "  ->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
     }
 
     if ($this->sql_object->limit) {
-      $this->output[] = "\t->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
+      $this->output[] = "  ->range(" . $this->sql_object->limit->offset . ', ' . $this->sql_object->limit->row_count . ")";
     }
   }
 
   /**
    * Convert delete query.
    */
-  protected function convertDelete() { }
+  protected function convertDelete() {
+    $this->output[] = "db_delete('" . $this->sql_object->tables[0]->name . "')";
+
+    if ($this->sql_object->conditional) {
+      $this->convertConditionals($this->sql_object->conditional);
+    }
+  }
 
   /**
    * Convert Select query fields.
@@ -152,7 +158,7 @@ class SqlConverter {
   protected function convertSelectFields() {
     // Select all fields.
     if ($this->sql_object->fields[0]->name == '*') {
-      $this->output[] = "\t->fields()";
+      $this->output[] = "  ->fields()";
     }
     // Select individual fields.
     else {
@@ -177,7 +183,7 @@ class SqlConverter {
       // Add fields for each table.
       if ($table_fields) {
         foreach ($table_fields as $table_alias => $fields) {
-          $this->output[] = "\t->fields('$table_alias', array('" . join("', '", $fields) . "'))";
+          $this->output[] = "  ->fields('$table_alias', array('" . join("', '", $fields) . "'))";
         }
       }
 
@@ -187,7 +193,7 @@ class SqlConverter {
           if (!($table_alias = $field->table)) {
             $table_alias = $this->sql_object->tables[0]->alias;
           }
-          $this->output[] = "\t->addField('$table_alias', '" . $field->name . "', '" . $field->alias . "')";
+          $this->output[] = "  ->addField('$table_alias', '" . $field->name . "', '" . $field->alias . "')";
         }
       }
     }
@@ -197,7 +203,7 @@ class SqlConverter {
    * Convert Insert and Update query fields.
    */
   protected function convertFields() {
-    $this->output[] = "\t->fields(array(";
+    $this->output[] = "  ->fields(array(";
     foreach ($this->sql_object->columns as $column) {
       if ($column->type == 'placeholder') {
         $value = array_shift($this->arguments);
@@ -205,9 +211,9 @@ class SqlConverter {
       else {
         $value = $column->value;
       }
-      $this->output[] = "\t\t'" . $column->name . "' => " . $value . ",";
+      $this->output[] = "    '" . $column->name . "' => " . $value . ",";
     }
-    $this->output[] = "\t))";
+    $this->output[] = "  ))";
   }
 
   /**
@@ -220,15 +226,15 @@ class SqlConverter {
         switch ($table->join) {
           case 'join':
           case 'inner join':
-            $join_statement = "\t->join(";
+            $join_statement = "  ->join(";
             break;
 
           case 'left join':
-            $join_statement = "\t->leftJoin(";
+            $join_statement = "  ->leftJoin(";
             break;
 
           case 'right join':
-            $join_statement = "\t->rightJoin(";
+            $join_statement = "  ->rightJoin(";
             break;
         }
         $right_table_alias = $this->getTableAlias($key + 1);
@@ -273,16 +279,16 @@ class SqlConverter {
     switch ($conditional->operator) {
       case 'and':
         if ($level > 1) {
-          $this->output[] = str_repeat("\t", $level - 1) . "->condition(db_and()";
+          $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_and()";
           $closing_parenthesis = TRUE;
         }
         break;
       case 'or':
-        $this->output[] = str_repeat("\t", $level - 1) . "->condition(db_or()";
+        $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_or()";
         $closing_parenthesis = TRUE;
         break;
       case 'xor':
-        $this->output[] = str_repeat("\t", $level - 1) . "->condition(db_xort()";
+        $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_xort()";
         $closing_parenthesis = TRUE;
         break;
     }
@@ -298,7 +304,7 @@ class SqlConverter {
     }
 
     if ($closing_parenthesis) {
-      $this->output[] = str_repeat("\t", $level - 1) . ")";
+      $this->output[] = str_repeat("  ", $level - 1) . ")";
     }
   }
 
@@ -322,10 +328,10 @@ class SqlConverter {
       $this->convertConditionals($conditional->arg1, $level + 1);
     }
     else {
-      $output = str_repeat("\t", $level) . "->condition('" . $conditional->arg1;
+      $output = str_repeat("  ", $level) . "->condition('" . $conditional->arg1;
 
       // Determine the correct arg2 for the conditional
-      if ($conditional->arg1->type == 'placeholder') {
+      if ($conditional->arg2->type == 'placeholder') {
         $value = array_shift($this->arguments);
 
         // IN operator now just takes an array, rather than imploded array.
@@ -371,16 +377,16 @@ class SqlConverter {
     switch ($havings['op']) {
       case 'and':
         if ($level > 1) {
-          $this->output[] = str_repeat("\t", $level - 1) . "->havingCondition(db_and()";
+          $this->output[] = str_repeat("  ", $level - 1) . "->havingCondition(db_and()";
           $closing_parenthesis = TRUE;
         }
         break;
       case 'or':
-        $this->output[] = str_repeat("\t", $level - 1) . "->havingCondition(db_or()";
+        $this->output[] = str_repeat("  ", $level - 1) . "->havingCondition(db_or()";
         $closing_parenthesis = TRUE;
         break;
       case 'xor':
-        $this->output[] = str_repeat("\t", $level - 1) . "->havingCondition(db_xort()";
+        $this->output[] = str_repeat("  ", $level - 1) . "->havingCondition(db_xort()";
         $closing_parenthesis = TRUE;
         break;
     }
@@ -396,7 +402,7 @@ class SqlConverter {
     }
 
     if ($closing_parenthesis) {
-      $this->output[] = str_repeat("\t", $level - 1) . ")";
+      $this->output[] = str_repeat("  ", $level - 1) . ")";
     }
   }
 
@@ -418,14 +424,14 @@ class SqlConverter {
   protected function convertHavingFragment($fragment, &$values = array(), $level = 1) {
     // If arg_1 or arg_2 is a function, then we have to use the having() function.
     if ($fragment['arg_1']['type'] == 'function' || $fragment['arg_2']['type'] == 'function') {
-      $output = str_repeat("\t", $level) . '->having("';
+      $output = str_repeat("  ", $level) . '->having("';
       $output .= $this->formatArg($fragment['arg_1']);
       $output .= ' ' . $fragment['op'] . ' ';
       $output .= $this->formatArg($fragment['arg_2']);
       $output .= '")';
     }
     else {
-      $output = str_repeat("\t", $level) . "->havingCondition('" . $fragment['arg_1']['value'];
+      $output = str_repeat("  ", $level) . "->havingCondition('" . $fragment['arg_1']['value'];
       if ($fragment['arg_2']['type'] == 'placeholder') {
         $value = array_shift($values);
 
