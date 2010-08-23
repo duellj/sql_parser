@@ -459,15 +459,16 @@ class SqlField extends SqlColumn {
    * Prints out a valid string representation of this field.
    */
   public function __toString() {
+    $output = '';
+    if ($this->table) {
+      $output .= $this->table . '.';
+    }
+    $output .= $this->name;
+
     if ($this->alias) {
-      return (string)$this->alias;
+      $output .= ' AS ' . $this->alias;
     }
-    elseif ($this->table) {
-      return $this->table . '.' . $this->name;
-    }
-    else {
-      return (string)$this->name;
-    }
+    return $output;
   }
 }
 
@@ -510,6 +511,10 @@ class SqlFunction extends SqlField {
    */
   public function setDistinct($distinct = TRUE) {
     $this->distinct = $distinct;
+  }
+
+  public function __toString() {
+    return $this->name . '(' . $this->distinct . impode(', ', $this->arguments) . ')';
   }
 }
 
@@ -612,6 +617,18 @@ class SqlTable {
     $this->join_conditional = new SqlJoinConditional($type);
     return $this->join_conditional;
   }
+
+  public function __toString() {
+    $output = '';
+    if ($this->join) {
+      $output .= strtoupper($this->join) . ' ';
+    }
+    $output .= $this->name;
+    if ($this->join_conditional) {
+      $output .= $this->join_conditional;
+    }
+    return $output;
+  }
 }
 
 /**
@@ -704,7 +721,29 @@ class SqlConditional {
    * Prints out a valid string representation of this condition.
    */
   public function __toString() {
-    return $this->arg1 . ' ' . ($this->not_operator ? ' ' . $this->not_operator . ' ' : '') . $this->operator . ' ' . $this->arg2;
+    $output = '';
+
+    // Check if arg1 is a grouped conditional. If so, enclose in parenthesis.
+    if ($this->arg1 instanceof SqlConditional && ($this->arg1->arg1 instanceof SqlConditional || $this->arg1->arg2 instanceof SqlConditional)) {
+      $output .= '(' . $this->arg1 . ')';
+    }
+    else {
+      $output .= $this->arg1;
+    }
+
+    $output .= ' ' . ($this->not_operator ? ' ' . $this->not_operator . ' ' : '') . $this->operator . ' ';
+
+    if ($this->arg2) {
+      // Check if arg2 is a grouped conditional. If so, enclose in parenthesis.
+      if ($this->arg2 instanceof SqlConditional && ($this->arg2->arg2 instanceof SqlConditional || $this->arg2->arg2 instanceof SqlConditional)) {
+        $output .= '(' . $this->arg2 . ')';
+      }
+      else {
+        $output .= $this->arg2;
+      }
+    }
+
+    return $output;
   }
 }
 
@@ -743,6 +782,17 @@ class SqlJoinConditional extends SqlConditional {
     if ($this->type == 'using') {
       $this->columns[] = $column_name;
     }
+  }
+
+  public function __toString() {
+    $output = ' ' . strtoupper($this->type);
+    if ($this->type == 'using') {
+      $output .= '(' . join(', ', $this->columns) . ')';
+    }
+    else {
+      $output .= parent::__toString();
+    }
+    return $output;
   }
 }
 
@@ -800,22 +850,13 @@ class SqlOrderBy {
    */
   public $direction;
 
-  public function __construct($column, $direction) {
+  public function __construct($column, $direction = 'asc') {
     $this->column = $column;
     $this->direction = $direction;
   }
 
-  /**
-   * Adds column and direction to order by clause.
-   *
-   * @param $column
-   *   The name of the column.
-   * @param $direction
-   *   The direction to order the column by.
-   */
-  public function addColumn($column, $direction = 'asc') {
-    $this->columns[] = $column;
-    $this->directions[] = $direction;
+  public function __toString() {
+    return $this->column . ' ' . strtoupper($this->direction);
   }
 }
 
@@ -842,5 +883,9 @@ class SqlLimit {
   public function __construct($row_count, $offset = 0) {
     $this->row_count = $row_count;
     $this->offset = $offset;
+  }
+
+  public function __toString() {
+    return 'LIMIT ' . $this->row_count . ($this->offset != 0 ? ' OFFSET ' . $this->offset : '');
   }
 }

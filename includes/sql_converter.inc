@@ -6,7 +6,7 @@
  */
 
 /**
- * SQL DBTNG  Converter
+ * SQL DBTNG Converter
  *
  * Takes a parsed sql array and converts it into a DBTNG object string.
  */
@@ -551,6 +551,8 @@ class SqlStringConverter {
    */
   protected $sql_object;
 
+  protected $output = array();
+
   public function __construct(SqlObject $sql_object) {
     $this->sql_object = $sql_object;
   }
@@ -559,16 +561,46 @@ class SqlStringConverter {
    * Performs the string conversion.
    */
   public function convert() {
-    $output .= 'SELECT ';
+    // For now we only need to convert select statements.
+    $output[] = 'SELECT';
 
-    $output .= join(', ', $sql_object->fields);
-    $output .= ' FROM ';
-    $output .= join(' ', $sql_object->tables);
+    $output[] = join(', ', $this->sql_object->fields);
+    $output[] = 'FROM';
+    $output[] = join(' ', $this->sql_object->tables);
 
-    if ($sql_object->conditions) {
-      $output .= ' WHERE ';
+    if ($this->sql_object->conditional) {
+      $output[] = 'WHERE';
+      $output[] = $this->convertConditional($this->sql_object->conditional);
     }
 
-    return $output;
+    if ($this->sql_object->group_by_clause) {
+      $output[] = 'GROUP BY';
+      $output[] = $this->sql_object->group_by_clause;
+    }
+
+    if ($this->sql_object->having_clause) {
+      $output[] = 'HAVING';
+      $output[] = $this->convertConditional($this->sql_object->having_clause);
+    }
+
+    if ($this->sql_object->order_by_clauses) {
+      $output[] = 'ORDER BY';
+      $output[] = join(', ', $this->sql_object->order_by_clauses);
+    }
+
+    if ($this->sql_object->limit) {
+      $output[] = $this->sql_object->limit;
+    }
+
+    return join(' ', $output);
+  }
+
+  /**
+   * convertConditional 
+   * 
+   * @param SqlConditiona $conditional 
+   * @return void
+   */
+  public function convertConditional(SqlConditional $conditional) {
   }
 }
