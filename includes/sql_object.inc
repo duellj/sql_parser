@@ -7,7 +7,7 @@
 
 /**
  * Sql Object
- * 
+ *
  * Provides a container for storing a SQL statement.
  */
 class SqlObject {
@@ -27,7 +27,7 @@ class SqlObject {
   public $tables;
 
   /**
-   * SQL placeholder count.
+   * The array of all placeholders in the SQL statement.
    *
    * @var array
    */
@@ -57,7 +57,7 @@ class SqlObject {
    *   The number of placeholders.
    */
   function numPlaceholders() {
-    return $this->placeholders;
+    return count($this->placeholders);
   }
 }
 
@@ -158,7 +158,7 @@ class SqlSelect extends SqlObject {
   /**
    * Set condition to SqlConditional object
    *
-   * Complex conditional clauses can be created by using subclauses in 
+   * Complex conditional clauses can be created by using subclauses in
    * SqlConditonal->arg1 or SqlConditionalal->arg2.
    *
    * @param SqlConditional $sql_condition
@@ -173,7 +173,7 @@ class SqlSelect extends SqlObject {
    * @return
    *   A SqlGroupByClause object.
    */
-  public function addGroupBy(){
+  public function addGroupBy() {
     $this->group_by_clause = new SqlGroupByClause();
     return $this->group_by_clause;
   }
@@ -300,7 +300,7 @@ class SqlUpdate extends SqlObject {
   /**
    * Set condition to SqlConditional object
    *
-   * Complex conditional clauses can be created by using subclauses in 
+   * Complex conditional clauses can be created by using subclauses in
    * SqlConditonal->arg1 or SqlConditionalal->arg2.
    *
    * @param SqlConditional $sql_condition
@@ -809,8 +809,7 @@ class SqlGroupByClause {
    */
   public $columns;
 
-  public function __construct() {
-  }
+  public function __construct() { }
 
   /**
    * Adds a column to the group by clause
@@ -828,7 +827,7 @@ class SqlGroupByClause {
  *
  * Provides a container for storing SQL having clause info.
  */
-class SqlHavingClause extends SqlConditional {}
+class SqlHavingClause extends SqlConditional { }
 
 /**
  * Sql Order By

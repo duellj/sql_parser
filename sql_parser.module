@@ -7,7 +7,7 @@
  */
 
 /**
- * Implements hook_menu.
+ * Implements hook_menu().
  */
 function sql_parser_menu() {
   $items['sql-parser'] = array(
@@ -23,7 +23,7 @@ function sql_parser_menu() {
 /**
  * Page Callback.
  */
-function sql_parser_parser_form(&$form_state) {
+function sql_parser_parser_form($form, &$form_state) {
   if ($form_state['post']['sql']) {
     $parsed_sql = sql_parser_parse($form_state['post']['sql']);
     $query_string = sql_parser_convert($parsed_sql);
@@ -49,6 +49,10 @@ function sql_parser_parser_form(&$form_state) {
   return $form;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function sql_parser_parse($sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
   module_load_include('inc', 'sql_parser', 'includes/sql_lexer');
@@ -58,6 +62,10 @@ function sql_parser_parse($sql) {
   return $parser->parse();
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function sql_parser_convert($parsed_sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_converter');
 
