@@ -1226,11 +1226,8 @@ class SqlParser {
 
       // Parses join condition.
       if ($this->token == 'on') {
-        // @todo need to figure out how to properly parse and add this to
-        // SqlJoinCondition.
         $join_condition = &$table->setJoinCondition($this->token);
-        $clause = $this->parseSearchClause();
-        $this->tree['table_join_clause'][] = $clause;
+        $this->parseSearchClause($join_condition);
       }
       else if ($this->token == 'using') {
         $join_condition = & $table->setJoinCondition($this->token);

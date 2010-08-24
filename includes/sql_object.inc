@@ -202,6 +202,40 @@ class SqlSelect extends SqlObject {
   public function addLimit($row_count, $offset = NULL) {
     $this->limit = new SqlLimit($row_count, $offset);
   }
+
+  public function __toString() {
+    $output[] = 'SELECT';
+
+    $output[] = join(', ', $this->fields);
+    $output[] = 'FROM';
+    $output[] = join(' ', $this->tables);
+
+    if ($this->conditional) {
+      $output[] = 'WHERE';
+      $output[] = $this->conditional;
+    }
+
+    if ($this->group_by_clause) {
+      $output[] = 'GROUP BY';
+      $output[] = $this->group_by_clause;
+    }
+
+    if ($this->having_clause) {
+      $output[] = 'HAVING';
+      $output[] = $this->having_clause;
+    }
+
+    if ($this->order_by_clauses) {
+      $output[] = 'ORDER BY';
+      $output[] = join(', ', $this->order_by_clauses);
+    }
+
+    if ($this->limit) {
+      $output[] = $this->limit;
+    }
+
+    return join(' ', $output);
+  }
 }
 
 /**
@@ -624,6 +658,9 @@ class SqlTable {
       $output .= strtoupper($this->join) . ' ';
     }
     $output .= $this->name;
+    if ($this->alias) {
+      $output .= ' ' . $this->alias;
+    }
     if ($this->join_conditional) {
       $output .= $this->join_conditional;
     }
@@ -790,7 +827,7 @@ class SqlJoinConditional extends SqlConditional {
       $output .= '(' . join(', ', $this->columns) . ')';
     }
     else {
-      $output .= parent::__toString();
+      $output .= ' ' . parent::__toString();
     }
     return $output;
   }
