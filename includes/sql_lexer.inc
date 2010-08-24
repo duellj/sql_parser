@@ -278,7 +278,7 @@ class SqlLexer {
           }
 
           // Reserved keyword or identifier (e.g. column or table name).
-          if (ctype_alpha(ord($c))) {
+          if (ctype_alpha(ord($c)) || $c == '{') {
             $state = 1;
             break;
           }
@@ -356,7 +356,7 @@ class SqlLexer {
         // State 1 : Incomplete keyword or identifier.
         case 1:
           $c = $this->get();
-          if (ctype_alnum(ord($c)) || ($c == '_') || ($c == '.')) {
+          if (ctype_alnum(ord($c)) || in_array($c, array('_', '.', '{' ,'}'))) {
             $state = 1;
             break;
           }
