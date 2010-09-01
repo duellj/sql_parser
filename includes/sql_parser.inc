@@ -165,6 +165,10 @@ class SqlParser {
           $this->parseLimit($sql_object);
           break;
 
+        case 'offset':
+//           $this->parseLimit($sql_object);
+          break;
+
         case 'group':
           $group_by = &$sql_object->addGroupBy();
           $this->getToken();
@@ -1305,6 +1309,14 @@ class SqlParser {
       }
       $offset = $row_count;
       $row_count = $this->lexer->tokenText;
+      $this->getToken();
+    }
+    elseif ($this->token == 'offset') {
+      $this->getToken();
+      if ($this->token != 'int_val' && $this->token != 'placeholder') {
+        return $this->raiseError('Expected an integer value');
+      }
+      $offset = $this->lexer->tokenText;
       $this->getToken();
     }
     $sql_object->addLimit($row_count, $offset);

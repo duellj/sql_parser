@@ -12,6 +12,7 @@
 function sql_parser_menu() {
   $items['admin/config/development/sql-parser'] = array(
     'title' => 'SQL Parser',
+    'description' => 'Parse SQL strings and convert to Drupal DBTNG objects.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('sql_parser_parser_form'),
     'access arguments' => array('access content'),
@@ -24,26 +25,31 @@ function sql_parser_menu() {
  * Page Callback.
  */
 function sql_parser_parser_form($form, &$form_state) {
-  $query_string = '';
-  $sql = '';
-  if ($form_state['input'] && $form_state['input']['sql']) {
-    $sql = $form_state['input']['sql'];
-    $parsed_sql = sql_parser_parse($sql);
+  if (isset($form_state['input']['sql'])) {
+    $parsed_sql = sql_parser_parse($form_state['input']['sql']);
     $query_string = sql_parser_convert($parsed_sql);
   }
   $form['sql'] = array(
-    '#title' => 'Original SQL String',
+    '#title' => 'Original SQL string',
     '#type' => 'textarea',
-    '#default_value' => $sql,
+    '#default_value' => isset($form_state['input']['sql']) ? $form_state['input']['sql'] : '',
+  );
+  $form['parsed_sql'] = array(
+    '#title' => 'Parsed SQL string',
+    '#type' => 'textarea',
+    '#attributes' => array(
+      'readonly' => 'readonly',
+    ),
+    '#value' => isset($parsed_sql) ? $parsed_sql : '',
   );
   $form['output'] = array(
-    '#title' => 'Database Object',
+    '#title' => 'Database object syntax',
     '#type' => 'textarea',
     '#rows' => 10,
     '#attributes' => array(
       'readonly' => 'readonly',
     ),
-    '#value' => $query_string,
+    '#value' => isset($query_string) ? $query_string : '',
   );
   $form['submit'] = array(
     '#type' => 'button',

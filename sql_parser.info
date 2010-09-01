@@ -1,6 +1,7 @@
 ; $Id$
 name = SQL Parser
 description = Parser SQL strings into Drupal database objects.
+package = Development
 core = 7.x
 
 files[] = sql_parser.module
