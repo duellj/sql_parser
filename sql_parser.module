@@ -24,14 +24,17 @@ function sql_parser_menu() {
  * Page Callback.
  */
 function sql_parser_parser_form($form, &$form_state) {
-  if ($form_state['post']['sql']) {
-    $parsed_sql = sql_parser_parse($form_state['post']['sql']);
+  $query_string = '';
+  $sql = '';
+  if ($form_state['input'] && $form_state['input']['sql']) {
+    $sql = $form_state['input']['sql'];
+    $parsed_sql = sql_parser_parse($sql);
     $query_string = sql_parser_convert($parsed_sql);
   }
   $form['sql'] = array(
     '#title' => 'Original SQL String',
     '#type' => 'textarea',
-    '#default_value' => $form_state['post']['sql'],
+    '#default_value' => $sql,
   );
   $form['output'] = array(
     '#title' => 'Database Object',
