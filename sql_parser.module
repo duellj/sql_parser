@@ -10,7 +10,7 @@
  * Implements hook_menu().
  */
 function sql_parser_menu() {
-  $items['sql-parser'] = array(
+  $items['admin/config/development/sql-parser'] = array(
     'title' => 'SQL Parser',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('sql_parser_parser_form'),
@@ -57,6 +57,7 @@ function sql_parser_parse($sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
   module_load_include('inc', 'sql_parser', 'includes/sql_lexer');
   module_load_include('inc', 'sql_parser', 'includes/sql_parser');
+  module_load_include('inc', 'sql_parser', 'includes/sql_object');
 
   $parser = new SqlParser($sql);
   return $parser->parse();
@@ -69,6 +70,6 @@ function sql_parser_parse($sql) {
 function sql_parser_convert($parsed_sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_converter');
 
-  $converter = new SqlConverter($parsed_sql);
+  $converter = new SqlDBTNGConverter($parsed_sql);
   return $converter->convert();
 }
