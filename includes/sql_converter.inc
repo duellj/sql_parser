@@ -267,8 +267,6 @@ class SqlDBTNGConverter {
           $join_statement .= "'" . join(' AND ', $join_conditions) . "'";
         }
         else {
-          // @todo: extract table names to assign the correct table alias to fields.
-          // @todo: check if args are placeholders.
           $join_statement .= "'" . $table->join_conditional . "'";
         }
 
@@ -347,7 +345,7 @@ class SqlDBTNGConverter {
 
       // Determine the correct arg2 for the conditional
       if ($conditional->arg2->type == 'placeholder') {
-        $value = array_shift($this->arguments);
+        $value = !empty($this->arguments) ? array_shift($this->arguments) : "'@todo Set conditional argument.'";
 
         // IN operator now just takes an array, rather than imploded array.
         if ($conditional->operator == 'in' && preg_match("/db_placeholders\(([^,]*).*\)/", $value, $matches)) {
