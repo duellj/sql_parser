@@ -432,6 +432,16 @@ class SqlColumn {
   }
 
   /**
+   * Sets the name of the field.
+   *
+   * @param $name
+   *   The name of the field.
+   */
+  public function setName($name) {
+    $this->name = $name;
+  }
+
+  /**
    * Sets the value of the field.
    *
    * Used in insert and update statements.
@@ -508,7 +518,13 @@ class SqlField extends SqlColumn {
     if ($this->table) {
       $output .= $this->table . '.';
     }
-    $output .= $this->name;
+
+    if ($this->type == 'null') {
+      $output .= 'NULL';
+    }
+    else {
+      $output .= $this->name;
+    }
 
     if ($this->alias) {
       $output .= ' AS ' . $this->alias;
@@ -779,7 +795,7 @@ class SqlConditional {
       $output .= $this->arg1;
     }
 
-    $output .= ' ' . ($this->not_operator ? ' ' . $this->not_operator . ' ' : '') . $this->operator . ' ';
+    $output .= ' ' . strtoupper($this->operator) . ' ' . ($this->not_operator ? 'NOT ' : '');
 
     if ($this->arg2) {
       // Check if arg2 is a grouped conditional. If so, enclose in parenthesis.

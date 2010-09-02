@@ -459,34 +459,49 @@ class SqlDBTNGConverter extends SqlConverter {
     if ($conditional->arg1 instanceof SqlConditional) {
       // Arg1 is conditional, pass back to convertConditional().
       $this->convertConditionals($conditional->arg1, $level + 1);
+
+      // Arg2 is conditional, pass back to convertConditional().
+      if ($conditional->arg2 instanceof SqlConditional) {
+        $this->convertConditionals($conditional->arg2, $level + 1);
+      }
     }
     else {
-      $output = str_repeat("  ", $level) . "->condition('" . $conditional->arg1;
-
-      // Determine the correct arg2 for the conditional
-      if ($conditional->arg2->type == 'placeholder') {
-        $value = $this->getArgument();
-
-        // IN operator now just takes an array, rather than imploded array.
-        if ($conditional->operator == 'in' && preg_match("/db_placeholders\(([^,]*).*\)/", $value, $matches)) {
-          $value = $matches[1];
+      // NULL values require special methods
+      if ($conditional->arg2->type == 'null') {
+        if ($conditional->not_operator) {
+          $output = str_repeat("  ", $level) . "->isNotNull('" . $conditional->arg1 . "')";
+        }
+        else {
+          $output = str_repeat("  ", $level) . "->isNull('" . $conditional->arg1 . "')";
         }
       }
-      elseif ($conditional->operator == 'in' && is_array($conditional->arg2)) {
-        $value = 'array(' . join(', ', $conditional->arg2) . ')';
-      }
       else {
-        $value = $conditional->arg2->name;
+        $output = str_repeat("  ", $level) . "->condition('" . $conditional->arg1;
+
+        // Determine the correct arg2 for the conditional
+        if ($conditional->arg2->type == 'placeholder') {
+          $value = $this->getArgument();
+
+          // IN operator now just takes an array, rather than imploded array.
+          if ($conditional->operator == 'in' && preg_match("/db_placeholders\(([^,]*).*\)/", $value, $matches)) {
+            $value = $matches[1];
+          }
+        }
+        elseif ($conditional->operator == 'in' && is_array($conditional->arg2)) {
+          $value = 'array(' . join(', ', $conditional->arg2) . ')';
+        }
+        else {
+          $value = $conditional->arg2->name;
+        }
+        $output .=  "', $value";
+
+        // Add operator if necessary.
+        if ($conditional->operator != '=') {
+          $output .= ", '" . $conditional->operator . "'";
+        }
+
+        $output .= ")";
       }
-      $output .=  "', $value";
-
-      // Add operator if necessary.
-      if ($conditional->operator != '=') {
-        $output .= ", '" . $conditional->operator . "'";
-      }
-
-      $output .= ")";
-
       $this->output[] = $output;
     }
   }
@@ -652,13 +667,14 @@ class SqlDBTNGConverter extends SqlConverter {
     // Generate new table alias based on table name.
     $table_name = $this->sql_object->tables[0]->name;
     $table_words = explode('_', $table_name);
+    $alias = '';
     foreach ($table_words as $table_word) {
       $alias .= $table_word[0];
     }
 
     // Get all current table aliases
     $table_aliases = array();
-    foreach ($this->parsed_sql->tables as $table) {
+    foreach ($this->sql_object->tables as $table) {
       if ($table->alias) {
         $table_aliases[] = $table->alias;
       }
