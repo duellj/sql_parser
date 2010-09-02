@@ -47,7 +47,10 @@ class SqlObject {
    */
   function &addTable($table_name = NULL) {
     $this->tables[] = new SqlTable($table_name);
-    return end($this->tables);
+
+    // Return object by reference so further manipulations can be done.
+    $table = &end($this->tables);
+    return $table;
   }
 
   /**
@@ -152,7 +155,9 @@ class SqlSelect extends SqlObject {
     else {
       $this->fields[] = new SqlField($field);
     }
-    return end($this->fields);
+    // Return object by reference so further manipulations can be done.
+    $field = end($this->fields);
+    return $field;
   }
 
   /**
@@ -186,7 +191,10 @@ class SqlSelect extends SqlObject {
    */
   public function addHaving() {
     $this->having_clauses[] = new SqlHavingClause();
-    return end($this->having_clauses);
+
+    // Return object by reference so further manipulations can be done.
+    $having_clause = &end($this->having_clauses);
+    return $having_clause;
   }
 
   /**
@@ -220,7 +228,7 @@ class SqlSelect extends SqlObject {
       $output[] = $this->group_by_clause;
     }
 
-    if ($this->having_clause) {
+    if ($this->having_clauses) {
       $output[] = 'HAVING';
       $output[] = $this->having_clause;
     }
@@ -328,6 +336,9 @@ class SqlUpdate extends SqlObject {
     }
 
     $this->columns[] = $column;
+
+    // Return object by reference so further manipulations can be done.
+    $column = &end($this->columns);
     return end($this->columns);
   }
 
@@ -745,13 +756,13 @@ class SqlConditional {
   }
 
   /**
-   * Set the logical not flag for this condition.
+   * Set the logical not operator for this condition.
    *
-   * @param boolean $not_flag
-   *   Defaults to TRUE to set the not flag.
+   * @param boolean $not_operator
+   *   Defaults to TRUE to set the not operator.
    */
-  public function setNot($not_flag = TRUE) {
-    $this->not_flag = $not_flag;
+  public function setNot($not_operator = TRUE) {
+    $this->not_operator = $not_operator;
   }
 
   /**
@@ -804,7 +815,7 @@ class SqlJoinConditional extends SqlConditional {
    */
   public $columns;
 
-  public function __construct($type) {
+  public function __construct($type = 'on') {
     $this->type = $type;
   }
 

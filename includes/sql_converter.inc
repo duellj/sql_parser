@@ -102,8 +102,8 @@ class SqlDBTNGConverter {
       }
     }
 
-    if ($this->sql_object->order_by) {
-      foreach ($this->sql_object->order_by as $order) {
+    if ($this->sql_object->order_by_clauses) {
+      foreach ($this->sql_object->order_by_clauses as $order) {
         $this->output[] = "  ->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
     }
@@ -331,9 +331,6 @@ class SqlDBTNGConverter {
    *   Parsed conditional object.
    * @param $level
    *   Level of conditional statements.
-   *
-   * @return
-   *   Array of conditional object string.
    */
   protected function convertConditionalFragment(SqlConditional $conditional, $level = 1) {
     if ($conditional->arg1 instanceof SqlConditional) {
