@@ -952,7 +952,7 @@ class SqlParser {
    */
   protected function parseField() {
     if (strpos($this->lexer->tokenText, '.')) {
-      list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
+      list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
     }
     else {
       $columnName = $this->lexer->tokenText;
@@ -1073,7 +1073,7 @@ class SqlParser {
     elseif ($this->token == 'identifier' || $this->dialect->isFunc($this->token)) {
       while ($this->token != 'from') {
         if ($this->token == 'identifier') {
-          list($columnTable, $columnName) = explode(".", $this->lexer->tokenText);
+          list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
           if (!$columnName) {
             $columnName = $columnTable;
             $columnTable = '';
