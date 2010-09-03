@@ -27,7 +27,9 @@ function sql_parser_menu() {
 function sql_parser_parser_form($form, &$form_state) {
   if (isset($form_state['input']['sql'])) {
     $parsed_sql = sql_parser_parse($form_state['input']['sql']);
-    $query_string = sql_parser_convert($parsed_sql);
+    if ($parsed_sql) {
+      $query_string = sql_parser_convert($parsed_sql);
+    }
   }
   $form['sql'] = array(
     '#title' => 'Original SQL string',
@@ -69,7 +71,17 @@ function sql_parser_parse($sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_object');
 
   $parser = new SqlParser($sql);
-  return $parser->parse();
+  $sql_object = $parser->parse();
+
+  // Check if errors have been found in the parsing process.
+  if ($parser->isException()) {
+    $e = $parser->getException();
+    drupal_set_message('<pre>' . $e . '</pre>');
+    return FALSE;
+  }
+  else {
+    return $sql_object;
+  }
 }
 
 /**

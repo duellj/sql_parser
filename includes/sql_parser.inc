@@ -15,7 +15,6 @@
  * @todo Document, Document, Document!!
  * @todo Add example code samples.
  * @todo Update classes to use php5 standards.
- * @todo Provide sane exception handling in raiseError().
  * @todo Parse multiple SQL strings.
  * @todo Parse CREATE and DROP statements.
  */
@@ -57,6 +56,13 @@ class SqlParser {
   protected $placeholders;
 
   /**
+   * The exception if parser encounters an error.
+   *
+   * @var SqlParserException
+   */
+  protected $exception;
+
+  /**
    * __construct
    *
    * @param $string
@@ -89,48 +95,72 @@ class SqlParser {
       $this->lexer->symbols = & $this->dialect->symbols;
     }
     else {
-      return $this->raiseError('No initial string specified');
+      throw new SqlParserException('No initial string specified', $this->token, $this->lexer);
     }
 
     // Get query action.
     $this->getToken();
-    switch ($this->token) {
-      case NULL:
-        // NULL == end of string
-        return $this->raiseError('Nothing to do');
+    try {
+      switch ($this->token) {
+        case NULL:
+          // NULL == end of string
+          throw new SqlParserException('Nothing to do', $this->token, $this->lexer);
 
-      case 'select':
-        $sql_object = $this->parseSelect();
-        break;
+        case 'select':
+          $sql_object = $this->parseSelect();
+          break;
 
-      case 'update':
-        $sql_object = $this->parseUpdate();
-        break;
+        case 'update':
+          $sql_object = $this->parseUpdate();
+          break;
 
-      case 'insert':
-        $sql_object = $this->parseInsert();
-        break;
+        case 'insert':
+          $sql_object = $this->parseInsert();
+          break;
 
-      case 'delete':
-        $sql_object = $this->parseDelete();
-        break;
+        case 'delete':
+          $sql_object = $this->parseDelete();
+          break;
 
-      case 'create':
-        $sql_object = $this->parseCreate();
-        break;
+        case 'create':
+          $sql_object = $this->parseCreate();
+          break;
 
-      case 'drop':
-        $sql_object = $this->parseDrop();
-        break;
+        case 'drop':
+          $sql_object = $this->parseDrop();
+          break;
 
-      default:
-        return $this->raiseError('Unknown action :' . $this->token);
-        break;
+        default:
+          throw new SqlParserException('Unknown action :' . $this->token, $this->token, $this->lexer);
+          break;
+      }
+    } catch (Exception $e) {
+      $this->exception = $e;
+      return;
     }
     if ($sql_object) {
       $sql_object->placeholders = $this->placeholders;
       return $sql_object;
     }
+  }
+
+  /**
+   * Has an error been found during parsing?
+   *
+   * @return boolean
+   */
+  public function isException() {
+    return !empty($this->exception);
+  }
+
+  /**
+   * Return the parsing exception.
+   *
+   * @return SqlParserException
+   *   The exception object that contains the error message.
+   */
+  public function getException() {
+    return $this->exception;
   }
 
   /**
@@ -145,7 +175,7 @@ class SqlParser {
     $this->parseSelectFields($sql_object);
 
     if ($this->token != 'from') {
-      return $this->raiseError('Expected "from"');
+      throw new SqlParserException('Expected "from"', $this->token, $this->lexer);
     }
 
     $this->parseTables($sql_object);
@@ -173,7 +203,7 @@ class SqlParser {
           $group_by = &$sql_object->addGroupBy();
           $this->getToken();
           if ($this->token != 'by') {
-            return $this->raiseError('Expected "by"');
+            throw new SqlParserException('Expected "by"', $this->token, $this->lexer);
           }
           $this->getToken();
           while ($this->token == 'identifier') {
@@ -196,7 +226,7 @@ class SqlParser {
           continue;
 
         default:
-          return $this->raiseError('Unexpected clause');
+          throw new SqlParserException('Unexpected clause', $this->token, $this->lexer);
       }
     }
     return $sql_object;
@@ -212,7 +242,7 @@ class SqlParser {
       $sql_object->addTable($this->lexer->tokenText);
     }
     else {
-      return $this->raiseError('Expected table name');
+      throw new SqlParserException('Expected table name', $this->token, $this->lexer);
     }
 
     $this->parseSetFields($sql_object);
@@ -238,7 +268,7 @@ class SqlParser {
           continue;
 
         default:
-          return $this->raiseError('Unexpected clause');
+          throw new SqlParserException('Unexpected clause', $this->token, $this->lexer);
       }
     }
     return $sql_object;
@@ -260,7 +290,7 @@ class SqlParser {
         $this->getToken();
       }
       else {
-        return $this->raiseError('Expected table name');
+        throw new SqlParserException('Expected table name', $this->token, $this->lexer);
       }
 
       // Parse field list.
@@ -272,12 +302,12 @@ class SqlParser {
             $columns[] = new SqlColumn($this->lexer->tokenText);
           }
           else {
-            return $this->raiseError('Expected a value');
+            throw new SqlParserException('Expected a value', $this->token, $this->lexer);
           }
 
           $this->getToken();
           if (($this->token != ',') && ($this->token != ')')) {
-            return $this->raiseError('Expected , or )');
+            throw new SqlParserException('Expected , or )', $this->token, $this->lexer);
           }
         }
         $this->getToken();
@@ -296,20 +326,20 @@ class SqlParser {
             $values[] = $this->lexer->tokenText;
           }
           else {
-            return $this->raiseError('Expected a value');
+            throw new SqlParserException('Expected a value', $this->token, $this->lexer);
           }
 
           $this->getToken();
           if (($this->token != ',') && ($this->token != ')')) {
-            return $this->raiseError('Expected , or )');
+            throw new SqlParserException('Expected , or )', $this->token, $this->lexer);
           }
         }
 
         if (count($columns) > 0 && (count($columns) != count($values))) {
-          return $this->raiseError('field/value mismatch');
+          throw new SqlParserException('field/value mismatch', $this->token, $this->lexer);
         }
         if (count($values) == 0) {
-          return $this->raiseError('No fields to insert');
+          throw new SqlParserException('No fields to insert', $this->token, $this->lexer);
         }
 
         foreach ($columns as $column) {
@@ -317,11 +347,11 @@ class SqlParser {
         }
       }
       else {
-        return $this->raiseError('Expected "values"');
+        throw new SqlParserException('Expected "values"', $this->token, $this->lexer);
       }
     }
     else {
-      return $this->raiseError('Expected "into"');
+      throw new SqlParserException('Expected "into"', $this->token, $this->lexer);
     }
     return $sql_object;
   }
@@ -334,12 +364,12 @@ class SqlParser {
 
     $this->getToken();
     if ($this->token != 'from') {
-      return $this->raiseError('Expected "from"');
+      throw new SqlParserException('Expected "from"', $this->token, $this->lexer);
     }
 
     $this->getToken();
     if ($this->token != 'identifier') {
-      return $this->raiseError('Expected a table name');
+      throw new SqlParserException('Expected a table name', $this->token, $this->lexer);
     }
     $sql_object->addTable($this->lexer->tokenText);
 
@@ -371,7 +401,7 @@ class SqlParser {
           //                    $this->tree['column_names'] = array_keys($fields);
         }
         else {
-          return $this->raiseError('Expected table name');
+          throw new SqlParserException('Expected table name', $this->token, $this->lexer);
         }
         break;
       case 'index':
@@ -384,7 +414,7 @@ class SqlParser {
         $this->tree = array('command' => 'create_sequence');
         break;
       default:
-        return $this->raiseError('Unknown object to create');
+        throw new SqlParserException('Unknown object to create', $this->token, $this->lexer);
     }
     return $this->tree;
   }
@@ -402,7 +432,7 @@ class SqlParser {
         $this->tree = array('command' => 'drop_table');
         $this->getToken();
         if ($this->token != 'identifier') {
-          return $this->raiseError('Expected a table name');
+          throw new SqlParserException('Expected a table name', $this->token, $this->lexer);
         }
         $this->tree['table_names'][] = $this->lexer->tokenText;
         $this->getToken();
@@ -411,7 +441,7 @@ class SqlParser {
         }
         $this->getToken();
         if (!is_null($this->token)) {
-          return $this->raiseError('Unexpected token');
+          throw new SqlParserException('Unexpected token', $this->token, $this->lexer);
         }
         return $this->tree;
         break;
@@ -425,7 +455,7 @@ class SqlParser {
         $this->tree = array('command' => 'drop_sequence');
         break;
       default:
-        return $this->raiseError('Unknown object to drop');
+        throw new SqlParserException('Unknown object to drop', $this->token, $this->lexer);
     }
     return $this->tree;
   }
@@ -447,7 +477,7 @@ class SqlParser {
         $parameters[] = $field;
       }
       else {
-        return $this->raiseError('Expected a value');
+        throw new SqlParserException('Expected a value', $this->token, $this->lexer);
       }
 
       $this->getToken();
@@ -455,32 +485,9 @@ class SqlParser {
         return $parameters;
       }
       if (($this->token != ',') && ($this->token != ')')) {
-        return $this->raiseError('Expected , or )');
+        throw new SqlParserException('Expected , or )', $this->token, $this->lexer);
       }
     }
-  }
-
-  /**
-   * Throw a well formatted error.
-   *
-   * @param $message
-   */
-  protected function raiseError($message) {
-    $end = 0;
-    if ($this->lexer->sql_string != '') {
-      while (($this->lexer->lineBegin + $end < $this->lexer->stringLength) && ($this->lexer->sql_string{$this->lexer->lineBegin + $end} != "\n")) {
-        ++$end;
-      }
-    }
-
-    $message = 'Parse error: ' . $message . ' on line ' . ($this->lexer->lineNumber + 1) . "\n";
-    $message .= substr($this->lexer->sql_string, $this->lexer->lineBegin, $end) . "\n";
-    $length = is_null($this->token) ? 0 : strlen($this->lexer->tokenText);
-    $message .= str_repeat(' ', abs($this->lexer->tokenPointer - $this->lexer->lineBegin - $length)) . "^";
-    $message .= ' found: "' . $this->lexer->tokenText . '"';
-    drupal_set_message("<pre>" . $message . "</pre>");
-
-    return FALSE;
   }
 
   /**
@@ -503,22 +510,22 @@ class SqlParser {
   protected function parseSetFields(SqlObject $sql_object) {
     $this->getToken();
     if ($this->token != 'set') {
-      return $this->raiseError('Expected "set"');
+      throw new SqlParserException('Expected "set"', $this->token, $this->lexer);
     }
 
     while (TRUE) {
       $this->getToken();
       if ($this->token != 'identifier') {
-        return $this->raiseError('Expected a column name');
+        throw new SqlParserException('Expected a column name', $this->token, $this->lexer);
       }
       $column = &$sql_object->addColumn($this->lexer->tokenText);
       $this->getToken();
       if ($this->token != '=') {
-        return $this->raiseError('Expected =');
+        throw new SqlParserException('Expected =', $this->token, $this->lexer);
       }
       $this->getToken();
       if (!$this->dialect->isVal($this->token)) {
-        return $this->raiseError('Expected a value');
+        throw new SqlParserException('Expected a value', $this->token, $this->lexer);
       }
       $column->setValue($this->lexer->tokenText);
       $column->setType($this->token);
@@ -528,7 +535,7 @@ class SqlParser {
         break;
       }
       elseif ($this->token != ',') {
-        return $this->raiseError('Expected "where", "order", "limit" or ","');
+        throw new SqlParserException('Expected "where", "order", "limit" or ","', $this->token, $this->lexer);
       }
     }
   }
@@ -555,7 +562,7 @@ class SqlParser {
       // Argument is a subclause.
       $sql_conditional->setArg1($this->parseSearchClause());
       if ($this->token != ')') {
-        return $this->raiseError('Expected ")"');
+        throw new SqlParserException('Expected ")"', $this->token, $this->lexer);
       }
       $foundSubclause = TRUE;
     }
@@ -564,7 +571,7 @@ class SqlParser {
       $sql_conditional->setArg1($this->parseFunction());
     }
     elseif ($this->dialect->isReserved($this->token)) {
-      return $this->raiseError('Expected a column name or value');
+      throw new SqlParserException('Expected a column name or value', $this->token, $this->lexer);
     }
     else {
       // Argument is a field.
@@ -576,7 +583,7 @@ class SqlParser {
     if (!$foundSubclause) {
       $this->getToken();
       if (!$this->dialect->isOperator($this->token)) {
-        return $this->raiseError('Expected an operator');
+        throw new SqlParserException('Expected an operator', $this->token, $this->lexer);
       }
 
       $sql_conditional->setOperator($this->token);
@@ -590,7 +597,7 @@ class SqlParser {
             $this->getToken();
           }
           if ($this->token != 'null') {
-            return $this->raiseError('Expected "NULL"');
+            throw new SqlParserException('Expected "NULL"', $this->token, $this->lexer);
           }
           $field = new SqlField(NULL);
           $field->setType($this->token);
@@ -599,7 +606,7 @@ class SqlParser {
         case 'not':
           // Parse for 'not in' operator.
           if ($this->token != 'in') {
-            return $this->raiseError('Expected "in"');
+            throw new SqlParserException('Expected "in"', $this->token, $this->lexer);
           }
           $sql_conditional->setOperator($this->token);
           $sql_conditional->setNot();
@@ -607,7 +614,7 @@ class SqlParser {
         case 'in':
           // parse for 'in' operator
           if ($this->token != '(') {
-            return $this->raiseError('Expected "("');
+            throw new SqlParserException('Expected "("', $this->token, $this->lexer);
           }
 
           // read the subset
@@ -628,7 +635,7 @@ class SqlParser {
             $sql_conditional->setArg2($this->getParameters());
           }
           if ($this->token != ')') {
-            return $this->raiseError('Expected ")"');
+            throw new SqlParserException('Expected ")"', $this->token, $this->lexer);
           }
           break;
         case 'and':
@@ -639,13 +646,13 @@ class SqlParser {
         default:
           // Parse for in-fix binary operators.
           if ($this->dialect->isReserved($this->token)) {
-            return $this->raiseError('Expected a column name or value');
+            throw new SqlParserException('Expected a column name or value', $this->token, $this->lexer);
           }
           if ($this->token == '(') {
             $sql_conditional->arg2($this->parseSearchClause());
             $this->getToken();
             if ($this->token != ')') {
-              return $this->raiseError('Expected ")"');
+              throw new SqlParserException('Expected ")"', $this->token, $this->lexer);
             }
           }
           else {
@@ -682,7 +689,7 @@ class SqlParser {
   protected function parseFieldList() {
     $this->getToken();
     if ($this->token != '(') {
-      return $this->raiseError('Expected (');
+      throw new SqlParserException('Expected (', $this->token, $this->lexer);
     }
 
     $fields = array();
@@ -696,7 +703,7 @@ class SqlParser {
         return $fields;
       }
       else {
-        return $this->raiseError('Expected identifierifier');
+        throw new SqlParserException('Expected identifierifier', $this->token, $this->lexer);
       }
 
       // parse field type
@@ -705,7 +712,7 @@ class SqlParser {
         $type = $this->token;
       }
       else {
-        return $this->raiseError('Expected a valid type');
+        throw new SqlParserException('Expected a valid type', $this->token, $this->lexer);
       }
 
       $this->getToken();
@@ -713,7 +720,7 @@ class SqlParser {
       if ($this->token == 'precision') {
         // double precision == double
         if ($type == 'double') {
-          return $this->raiseError('Unexpected token');
+          throw new SqlParserException('Unexpected token', $this->token, $this->lexer);
         }
         $this->getToken();
       }
@@ -724,7 +731,7 @@ class SqlParser {
           $this->getToken();
         }
         else {
-          return $this->raiseError('Unexpected token');
+          throw new SqlParserException('Unexpected token', $this->token, $this->lexer);
         }
       }
       $fields[$name]['type'] = $this->dialect->getSynonym($type);
@@ -735,13 +742,13 @@ class SqlParser {
           case 'numeric':
             if (isset($parameters['values'][1])) {
               if ($parameters['types'][1] != 'int_val') {
-                return $this->raiseError('Expected an integer');
+                throw new SqlParserException('Expected an integer', $this->token, $this->lexer);
               }
               $fields[$name]['decimals'] = $parameters['values'][1];
             }
           case 'float':
             if ($parameters['types'][0] != 'int_val') {
-              return $this->raiseError('Expected an integer');
+              throw new SqlParserException('Expected an integer', $this->token, $this->lexer);
             }
             $fields[$name]['length'] = $parameters['values'][0];
             break;
@@ -750,23 +757,23 @@ class SqlParser {
           case 'integer':
           case 'int':
             if (count($parameters['values']) != 1) {
-              return $this->raiseError('Expected 1 parameter');
+              throw new SqlParserException('Expected 1 parameter', $this->token, $this->lexer);
             }
             if ($parameters['types'][0] != 'int_val') {
-              return $this->raiseError('Expected an integer');
+              throw new SqlParserException('Expected an integer', $this->token, $this->lexer);
             }
             $fields[$name]['length'] = $parameters['values'][0];
             break;
           case 'set':
           case 'enum':
             if (!count($parameters['values'])) {
-              return $this->raiseError('Expected a domain');
+              throw new SqlParserException('Expected a domain', $this->token, $this->lexer);
             }
             $fields[$name]['domain'] = $parameters['values'];
             break;
           default:
             if (count($parameters['values'])) {
-              return $this->raiseError('Unexpected )');
+              throw new SqlParserException('Unexpected )', $this->token, $this->lexer);
             }
         }
         $this->getToken();
@@ -804,7 +811,7 @@ class SqlParser {
             $haveValue = FALSE;
           }
           else {
-            return $this->raiseError('Expected a constraint name');
+            throw new SqlParserException('Expected a constraint name', $this->token, $this->lexer);
           }
           break;
         case 'default':
@@ -821,7 +828,7 @@ class SqlParser {
             $constraintOpts = $results;
           }
           else {
-            return $this->raiseError('Expected default value');
+            throw new SqlParserException('Expected default value', $this->token, $this->lexer);
           }
           break;
         case 'primary':
@@ -833,7 +840,7 @@ class SqlParser {
             );
           }
           else {
-            return $this->raiseError('Expected "key"');
+            throw new SqlParserException('Expected "key"', $this->token, $this->lexer);
           }
           break;
         case 'not':
@@ -843,13 +850,13 @@ class SqlParser {
               'value' => TRUE);
           }
           else {
-            return $this->raiseError('Expected "NULL"');
+            throw new SqlParserException('Expected "NULL"', $this->token, $this->lexer);
           }
           break;
         case 'check':
           $this->getToken();
           if ($this->token != '(') {
-            return $this->raiseError('Expected (');
+            throw new SqlParserException('Expected (', $this->token, $this->lexer);
           }
           $results = $this->parseSearchClause();
           //if (PEAR::isError($results)) {
@@ -858,28 +865,28 @@ class SqlParser {
           $results['type'] = 'check';
           $constraintOpts = $results;
           if ($this->token != ')') {
-            return $this->raiseError('Expected )');
+            throw new SqlParserException('Expected )', $this->token, $this->lexer);
           }
           break;
         case 'unique':
           $this->getToken();
           if ($this->token != '(') {
-            return $this->raiseError('Expected (');
+            throw new SqlParserException('Expected (', $this->token, $this->lexer);
           }
           $constraintOpts = array('type' => 'unique');
           $this->getToken();
           while ($this->token != ')') {
             if ($this->token != 'identifier') {
-              return $this->raiseError('Expected an identifierifier');
+              throw new SqlParserException('Expected an identifierifier', $this->token, $this->lexer);
             }
             $constraintOpts['column_names'][] = $this->lexer->tokenText;
             $this->getToken();
             if (($this->token != ')') && ($this->token != ',')) {
-              return $this->raiseError('Expected ) or ,');
+              throw new SqlParserException('Expected ) or ,', $this->token, $this->lexer);
             }
           }
           if ($this->token != ')') {
-            return $this->raiseError('Expected )');
+            throw new SqlParserException('Expected )', $this->token, $this->lexer);
           }
           break;
         case 'month':
@@ -907,10 +914,10 @@ class SqlParser {
               if ($this->token == 'to') {
                 $this->getToken();
                 if (!isset($class[$this->token])) {
-                  return $this->raiseError('Expected interval quanta');
+                  throw new SqlParserException('Expected interval quanta', $this->token, $this->lexer);
                 }
                 if ($class[$this->token] >= $class[$constraintOpts['quantum_1']]) {
-                  return $this->raiseError($this->token . ' is not smaller than ' . $constraintOpts['quantum_1']);
+                  throw new SqlParserException($this->token . ' is not smaller than ' . $constraintOpts['quantum_1'], $this->token, $this->lexer);
                 }
                 $constraintOpts['quantum_2'] = $this->token;
               }
@@ -921,7 +928,7 @@ class SqlParser {
             }
           }
           if (!isset($constraintOpts['quantum_1'])) {
-            return $this->raiseError('Expected interval quanta');
+            throw new SqlParserException('Expected interval quanta', $this->token, $this->lexer);
           }
           $constraintOpts['type'] = 'values';
           break;
@@ -929,7 +936,7 @@ class SqlParser {
           $haveValue = FALSE;
           break;
         default:
-          return $this->raiseError('Unexpected token ' . $this->lexer->tokenText);
+          throw new SqlParserException('Unexpected token ' . $this->lexer->tokenText, $this->token, $this->lexer);
       }
       if ($haveValue) {
         if ($namedConstraint) {
@@ -977,7 +984,7 @@ class SqlParser {
 
     $this->getToken();
     if ($this->token != '(') {
-      return $this->raiseError('Expected "("');
+      throw new SqlParserException('Expected "("', $this->token, $this->lexer);
     }
 
     switch ($function->name) {
@@ -988,14 +995,14 @@ class SqlParser {
             $function->setDistinct();
             $this->getToken();
             if ($this->token != 'identifier') {
-              return $this->raiseError('Expected a column name');
+              throw new SqlParserException('Expected a column name', $this->token, $this->lexer);
             }
           case 'identifier':
           case '*':
             $function->addArgument($this->lexer->tokenText);
             break;
           default:
-            return $this->raiseError('Invalid argument');
+            throw new SqlParserException('Invalid argument', $this->token, $this->lexer);
         }
         break;
       case 'concat':
@@ -1010,7 +1017,7 @@ class SqlParser {
               // do nothing
               break;
             default:
-              return $this->raiseError('Expected a string or a column name');
+              throw new SqlParserException('Expected a string or a column name', $this->token, $this->lexer);
           }
           $this->getToken();
         }
@@ -1027,7 +1034,7 @@ class SqlParser {
     }
     $this->getToken();
     if ($this->token != ')') {
-      return $this->raiseError('Expected ")"');
+      throw new SqlParserException('Expected ")"', $this->token, $this->lexer);
     }
 
     // check for an alias, from, or operator
@@ -1041,7 +1048,7 @@ class SqlParser {
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-        return $this->raiseError('Expected column alias');
+        throw new SqlParserException('Expected column alias', $this->token, $this->lexer);
       }
     }
     else {
@@ -1049,7 +1056,7 @@ class SqlParser {
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-        return $this->raiseError('Expected column alias, from or comma');
+        throw new SqlParserException('Expected column alias, from or comma', $this->token, $this->lexer);
       }
     }
     return $function;
@@ -1088,7 +1095,7 @@ class SqlParser {
               $columnAlias = $this->lexer->tokenText;
             }
             else {
-              return $this->raiseError('Expected column alias');
+              throw new SqlParserException('Expected column alias', $this->token, $this->lexer);
             }
           }
           elseif ($this->token == 'identifier') {
@@ -1115,19 +1122,19 @@ class SqlParser {
             $this->getToken();
           }
           else {
-            return $this->raiseError('Cannot use "' . $sql_object->set_quantifier . '" with ' . $this->token);
+            throw new SqlParserException('Cannot use "' . $sql_object->set_quantifier . '" with ' . $this->token, $this->token, $this->lexer);
           }
         }
         elseif ($this->token == ',') {
           $this->getToken();
         }
         else {
-          return $this->raiseError('Unexpected token "' . $this->token . '"');
+          throw new SqlParserException('Unexpected token "' . $this->token . '"', $this->token, $this->lexer);
         }
       }
     }
     else {
-      return $this->raiseError('Expected columns or a set function');
+      throw new SqlParserException('Expected columns or a set function', $this->token, $this->lexer);
     }
   }
 
@@ -1154,7 +1161,7 @@ class SqlParser {
           $join = strtolower($this->lexer->tokenText);
           $this->getToken();
           if ($this->token != 'join') {
-            return $this->raiseError('Expected token "join"');
+            throw new SqlParserException('Expected token "join"', $this->token, $this->lexer);
           }
           $table->setJoin($join . ' join');
           $this->getToken();
@@ -1172,11 +1179,11 @@ class SqlParser {
               $table->setJoin($join . ' join');
             }
             else {
-              return $this->raiseError('Expected token "join"');
+              throw new SqlParserException('Expected token "join"', $this->token, $this->lexer);
             }
           }
           else {
-            return $this->raiseError('Expected token "outer" or "join"');
+            throw new SqlParserException('Expected token "outer" or "join"', $this->token, $this->lexer);
           }
           $this->getToken();
         }
@@ -1199,15 +1206,15 @@ class SqlParser {
                 $table->setJoin($join . ' join');
               }
               else {
-                return $this->raiseError('Expected token "join" or "outer"');
+                throw new SqlParserException('Expected token "join" or "outer"', $this->token, $this->lexer);
               }
             }
             else {
-              return $this->raiseError('Expected token "join" or "outer"');
+              throw new SqlParserException('Expected token "join" or "outer"', $this->token, $this->lexer);
             }
           }
           else {
-            return $this->raiseError('Expected token "left", "right" or "join"');
+            throw new SqlParserException('Expected token "left", "right" or "join"', $this->token, $this->lexer);
           }
           $this->getToken();
         }
@@ -1228,7 +1235,7 @@ class SqlParser {
           $table->setAlias($this->lexer->tokenText);
         }
         else {
-          return $this->raiseError('Expected table alias');
+          throw new SqlParserException('Expected table alias', $this->token, $this->lexer);
         }
         $this->getToken();
       }
@@ -1244,7 +1251,7 @@ class SqlParser {
         // Advanced to first (.
         $this->getToken();
         if ($this->token != '(') {
-          return $this->raiseError('Expected (');
+          throw new SqlParserException('Expected (', $this->token, $this->lexer);
         }
 
         // Get all join columns.
@@ -1271,7 +1278,7 @@ class SqlParser {
   protected function parseOrderBy(SqlObject $sql_object) {
     $this->getToken();
     if ($this->token != 'by') {
-      return $this->raiseError('Expected "by"');
+      throw new SqlParserException('Expected "by"', $this->token, $this->lexer);
     }
     $this->getToken();
     while ($this->token == 'identifier') {
@@ -1280,7 +1287,7 @@ class SqlParser {
       if ($this->dialect->isSynonym($this->token)) {
         $direction = $this->dialect->getSynonym($this->token);
         if (($direction != 'asc') && ($direction != 'desc')) {
-          return $this->raiseError('Unexpected token');
+          throw new SqlParserException('Unexpected token', $this->token, $this->lexer);
         }
         $this->getToken();
       }
@@ -1302,7 +1309,7 @@ class SqlParser {
   protected function parseLimit(SqlObject $sql_object) {
     $this->getToken();
     if ($this->token != 'int_val' && $this->token != 'placeholder') {
-      return $this->raiseError('Expected an integer value');
+      throw new SqlParserException('Expected an integer value', $this->token, $this->lexer);
     }
     $row_count = $this->lexer->tokenText;
     $offset = 0;
@@ -1310,7 +1317,7 @@ class SqlParser {
     if ($this->token == ',') {
       $this->getToken();
       if ($this->token != 'int_val' && $this->token != 'placeholder') {
-        return $this->raiseError('Expected an integer value');
+        throw new SqlParserException('Expected an integer value', $this->token, $this->lexer);
       }
       $offset = $row_count;
       $row_count = $this->lexer->tokenText;
@@ -1319,7 +1326,7 @@ class SqlParser {
     elseif ($this->token == 'offset') {
       $this->getToken();
       if ($this->token != 'int_val' && $this->token != 'placeholder') {
-        return $this->raiseError('Expected an integer value');
+        throw new SqlParserException('Expected an integer value', $this->token, $this->lexer);
       }
       $offset = $this->lexer->tokenText;
       $this->getToken();
@@ -1331,4 +1338,50 @@ class SqlParser {
 /**
  * SQL Parser Exception.
  */
-class SqlParserException extends Exception { }
+class SqlParserException extends Exception {
+  /**
+   * Error message.
+   * 
+   * @var string
+   */
+  protected $message;
+
+  /**
+   * Found token.
+   *
+   * @var string
+   */
+  protected $token;
+
+  /**
+   * SqlLexer object.
+   *
+   * Holds original sql string, parsed line number, etc. for pretty error 
+   * formatting.
+   *
+   * @var SqlLexer
+   */
+  protected $lexer;
+
+  public function __construct($message, $token, SqlLexer $lexer) {
+    $this->message = $message;
+    $this->token = $token;
+    $this->lexer = $lexer;
+  }
+
+  public function __toString() {
+    $end = 0;
+    if ($this->lexer->sql_string != '') {
+      while (($this->lexer->lineBegin + $end < $this->lexer->stringLength) && ($this->lexer->sql_string{$this->lexer->lineBegin + $end} != "\n")) {
+        ++$end;
+      }
+    }
+
+    $message = 'Parse error: ' . $this->message . ' on line ' . ($this->lexer->lineNumber + 1) . "\n";
+    $message .= substr($this->lexer->sql_string, $this->lexer->lineBegin, $end) . "\n";
+    $length = is_null($this->token) ? 0 : strlen($this->lexer->tokenText);
+    $message .= str_repeat(' ', abs($this->lexer->tokenPointer - $this->lexer->lineBegin - $length)) . "^";
+    $message .= ' found: "' . $this->lexer->tokenText . '"';
+    return $message;
+  }
+}
