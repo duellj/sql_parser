@@ -27,8 +27,10 @@ function sql_parser_menu() {
 function sql_parser_parser_form($form, &$form_state) {
   if (isset($form_state['input']['sql'])) {
     $parsed_sql = sql_parser_parse($form_state['input']['sql']);
+    dpm($parsed_sql);
     if ($parsed_sql) {
-      $query_string = sql_parser_convert($parsed_sql);
+      $raw_query_string = (string) $parsed_sql;
+      $dbtng_query_string = sql_parser_convert_dbtng($parsed_sql);
     }
   }
   $form['sql'] = array(
@@ -42,7 +44,7 @@ function sql_parser_parser_form($form, &$form_state) {
     '#attributes' => array(
       'readonly' => 'readonly',
     ),
-    '#value' => isset($parsed_sql) ? $parsed_sql : '',
+    '#value' => isset($raw_query_string) ? $raw_query_string : '',
   );
   $form['output'] = array(
     '#title' => 'Database object syntax',
@@ -51,7 +53,7 @@ function sql_parser_parser_form($form, &$form_state) {
     '#attributes' => array(
       'readonly' => 'readonly',
     ),
-    '#value' => isset($query_string) ? $query_string : '',
+    '#value' => isset($dbtng_query_string) ? $dbtng_query_string : '',
   );
   $form['submit'] = array(
     '#type' => 'button',
@@ -61,8 +63,13 @@ function sql_parser_parser_form($form, &$form_state) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Parses a raw SQL string into a SqlObject.
+ *
+ * @param $sql
+ *   Raw SQL string.
+ *
+ * @return SqlObject
+ *   The parsed sql object.
  */
 function sql_parser_parse($sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
@@ -85,12 +92,33 @@ function sql_parser_parse($sql) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Converts a SqlObject into a Drupal 7 DBNTG query string.
+ *
+ * @param SqlObject $parsed_sql
+ *   Parsed SQL object.
+ *
+ * @return string
+ *   Converted DBTNG string.
  */
-function sql_parser_convert($parsed_sql) {
+function sql_parser_convert_dbtng(SqlObject $parsed_sql) {
   module_load_include('inc', 'sql_parser', 'includes/sql_converter');
 
   $converter = new SqlDBTNGConverter($parsed_sql);
+  return $converter->convert();
+}
+
+/**
+ * Converts a SqlObject into a raw Drupal 7 query string.
+ *
+ * @param SqlObject $parsed_sql
+ *   Parsed SQL object.
+ *
+ * @return string
+ *   Converted query string.
+ */
+function sql_parser_convert_string(SqlObject $parsed_sql) {
+  module_load_include('inc', 'sql_parser', 'includes/sql_converter');
+
+  $converter = new SqlStringConverter($parsed_sql);
   return $converter->convert();
 }

@@ -783,6 +783,14 @@ class SqlConditional {
 
   /**
    * Prints out a valid string representation of this condition.
+   *
+   * @todo parenthesis aren't correctly placed for SQL statements that don't 
+   * originallly contain parenthesis, e.g.:
+   *   column1 = 'test' AND column2 = 'test' OR column3 = 'test'
+   * is converted to:
+   *   column1 = 'test' AND (column2 = 'test' OR column3 = 'test')
+   * instead of:
+   *   (column1 = 'test' AND column2 = 'test') OR column3 = 'test'
    */
   public function __toString() {
     $output = '';

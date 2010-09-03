@@ -23,7 +23,7 @@ class SqlConverter {
    *
    * @param array $arguments
    */
-  protected $arguments;
+  protected $arguments = array();
 
   /**
    * An array of new placeholders.  Used to check for duplicates
@@ -457,12 +457,13 @@ class SqlDBTNGConverter extends SqlConverter {
    */
   protected function convertConditionalFragment(SqlConditional $conditional, $level = 1) {
     if ($conditional->arg1 instanceof SqlConditional) {
-      // Arg1 is conditional, pass back to convertConditional().
-      $this->convertConditionals($conditional->arg1, $level + 1);
+      // Arg1 is conditional, pass back to convertConditional().  If operator 
+      // is another AND, then the level doesn't need to be increased.
+      $this->convertConditionals($conditional->arg1, $level);
 
       // Arg2 is conditional, pass back to convertConditional().
       if ($conditional->arg2 instanceof SqlConditional) {
-        $this->convertConditionals($conditional->arg2, $level + 1);
+        $this->convertConditionals($conditional->arg2, $level);
       }
     }
     else {
@@ -721,7 +722,7 @@ class SqlDBTNGConverter extends SqlConverter {
  * Converts Drupal 6 SQL strings into Drupal 7 SQL strings.  Replaces Drupal 6 
  * style placeholders (e.g. %d) with Drupal 7 style placeholders (e.g. :nid).
  */
-class SqlStringConverter {
+class SqlStringConverter extends SqlConverter {
 
   /**
    * Performs the string conversion.

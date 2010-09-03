@@ -666,14 +666,16 @@ class SqlParser {
     // Check if there is another conditional to parse.
     $this->getToken();
     if (($this->token == 'and') || ($this->token == 'or') || $this->token == 'xor') {
-      $inner_conditional = new SqlConditional();
-      $inner_conditional->setOperator($sql_conditional->operator);
-      $inner_conditional->setArg1($sql_conditional->arg1);
-      $inner_conditional->setArg2($sql_conditional->arg2);
-      $inner_conditional->setNot($sql_conditional->not_operator);
+      if (!is_null($sql_conditional->arg2)) {
+        $inner_conditional = new SqlConditional();
+        $inner_conditional->setOperator($sql_conditional->operator);
+        $inner_conditional->setArg1($sql_conditional->arg1);
+        $inner_conditional->setArg2($sql_conditional->arg2);
+        $inner_conditional->setNot($sql_conditional->not_operator);
+        $sql_conditional->setArg1($inner_conditional);
+      }
 
       $sql_conditional->setOperator($this->token);
-      $sql_conditional->setArg1($inner_conditional);
       $sql_conditional->setArg2($this->parseSearchClause());
       $sql_conditional->setNot(FALSE);
     }
