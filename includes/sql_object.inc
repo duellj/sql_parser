@@ -1,5 +1,5 @@
 <?php
-// $Id$
+// $Id: sql_object.inc,v 1.5 2010/09/04 19:11:05 duellj Exp $
 
 /**
  * @file

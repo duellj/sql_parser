@@ -1,5 +1,5 @@
 <?php
-// $Id: sql_dialect.inc,v 1.6 2010/06/22 23:00:28 duellj Exp $
+// $Id: sql_dialect.inc,v 1.12 2010/09/04 19:11:05 duellj Exp $
 
 /**
  * @file

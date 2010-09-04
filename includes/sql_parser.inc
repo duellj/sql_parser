@@ -1,5 +1,5 @@
 <?php
-// $Id: sql_parser.inc,v 1.10 2010/07/09 21:27:34 duellj Exp $
+// $Id: sql_parser.inc,v 1.16 2010/09/04 19:11:05 duellj Exp $
 
 /**
  * @file

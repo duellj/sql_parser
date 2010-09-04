@@ -1,4 +1,4 @@
-; $Id$
+; $Id: sql_parser.info,v 1.8 2010/09/04 19:11:05 duellj Exp $
 name = SQL Parser
 description = Parser SQL strings into Drupal database objects.
 package = Development

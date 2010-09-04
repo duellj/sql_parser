@@ -1,5 +1,5 @@
 <?php
-// $Id: sql_lexer.inc,v 1.9 2010/07/09 21:27:34 duellj Exp $
+// $Id: sql_lexer.inc,v 1.15 2010/09/04 19:11:05 duellj Exp $
 
 /**
  * @file
