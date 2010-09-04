@@ -27,7 +27,6 @@ function sql_parser_menu() {
 function sql_parser_parser_form($form, &$form_state) {
   if (isset($form_state['input']['sql'])) {
     $parsed_sql = sql_parser_parse($form_state['input']['sql']);
-    dpm($parsed_sql);
     if ($parsed_sql) {
       $raw_query_string = (string) $parsed_sql;
       $dbtng_query_string = sql_parser_convert_dbtng($parsed_sql);
@@ -63,6 +62,22 @@ function sql_parser_parser_form($form, &$form_state) {
 }
 
 /**
+ * Loads sql parser code files.
+ */
+function sql_parser_load_parser() {
+  static $parser_loaded = FALSE;
+  if (!$parser_loaded) {
+    $parser_loaded = TRUE;
+    // Include parser files.
+    module_load_include('inc', 'sql_parser', 'includes/sql_parser');
+    module_load_include('inc', 'sql_parser', 'includes/sql_lexer');
+    module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
+    module_load_include('inc', 'sql_parser', 'includes/sql_object');
+    module_load_include('inc', 'sql_parser', 'includes/sql_converter');
+  }
+}
+
+/**
  * Parses a raw SQL string into a SqlObject.
  *
  * @param $sql
@@ -72,10 +87,7 @@ function sql_parser_parser_form($form, &$form_state) {
  *   The parsed sql object.
  */
 function sql_parser_parse($sql) {
-  module_load_include('inc', 'sql_parser', 'includes/sql_dialect');
-  module_load_include('inc', 'sql_parser', 'includes/sql_lexer');
-  module_load_include('inc', 'sql_parser', 'includes/sql_parser');
-  module_load_include('inc', 'sql_parser', 'includes/sql_object');
+  sql_parser_load_parser();
 
   $parser = new SqlParser($sql);
   $sql_object = $parser->parse();
@@ -101,8 +113,6 @@ function sql_parser_parse($sql) {
  *   Converted DBTNG string.
  */
 function sql_parser_convert_dbtng(SqlObject $parsed_sql) {
-  module_load_include('inc', 'sql_parser', 'includes/sql_converter');
-
   $converter = new SqlDBTNGConverter($parsed_sql);
   return $converter->convert();
 }
@@ -117,8 +127,6 @@ function sql_parser_convert_dbtng(SqlObject $parsed_sql) {
  *   Converted query string.
  */
 function sql_parser_convert_string(SqlObject $parsed_sql) {
-  module_load_include('inc', 'sql_parser', 'includes/sql_converter');
-
   $converter = new SqlStringConverter($parsed_sql);
   return $converter->convert();
 }
