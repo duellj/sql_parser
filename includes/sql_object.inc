@@ -46,10 +46,10 @@ class SqlObject {
    *   A reference to the new table object.
    */
   function &addTable($table_name = NULL) {
-    $this->tables[] = new SqlTable($table_name);
+    $table = new SqlTable($table_name);
+    $this->tables[] = &$table;
 
     // Return object by reference so further manipulations can be done.
-    $table = &end($this->tables);
     return $table;
   }
 
@@ -61,6 +61,10 @@ class SqlObject {
    */
   function numPlaceholders() {
     return count($this->placeholders);
+  }
+
+  public function __toString() {
+    return 'NOTE: __toString() method needs to be written for ' . get_class($this) . ' class';
   }
 }
 
@@ -149,14 +153,11 @@ class SqlSelect extends SqlObject {
    *   A SqlField object.
    */
   public function &addField($field) {
-    if ($field instanceof SqlField) {
-      $this->fields[] = $field;
+    if (!($field instanceof SqlField)) {
+      $field = new SqlField($field);
     }
-    else {
-      $this->fields[] = new SqlField($field);
-    }
+    $this->fields[] = &$field;
     // Return object by reference so further manipulations can be done.
-    $field = end($this->fields);
     return $field;
   }
 
@@ -189,11 +190,11 @@ class SqlSelect extends SqlObject {
    * @return
    *   A SqlHavingClause object.
    */
-  public function addHaving() {
-    $this->having_clauses[] = new SqlHavingClause();
+  public function &addHaving() {
+    $having_clause = new SqlHavingClause();
+    $this->having_clauses[] = &$having_clause;
 
     // Return object by reference so further manipulations can be done.
-    $having_clause = &end($this->having_clauses);
     return $having_clause;
   }
 
@@ -323,9 +324,11 @@ class SqlUpdate extends SqlObject {
    *   The value of the column.
    * @param $type
    *   The type of the column.
+   * @return SqlColumn
    */
   public function &addColumn($column_name, $value = NULL, $type = NULL) {
     $column = new SqlColumn($column_name);
+    $this->columns[] = &$column;
 
     if ($value) {
       $column->setValue($value);
@@ -335,11 +338,8 @@ class SqlUpdate extends SqlObject {
       $column->setType($type);
     }
 
-    $this->columns[] = $column;
-
     // Return object by reference so further manipulations can be done.
-    $column = &end($this->columns);
-    return end($this->columns);
+    return $column;
   }
 
   /**
@@ -689,6 +689,8 @@ class SqlTable {
       $output .= ' ' . $this->alias;
     }
     if ($this->join_conditional) {
+      sdp($output, '$output');
+      sdp($this->join_conditional->__toString(), '$this->join_conditional');
       $output .= $this->join_conditional;
     }
     return $output;
@@ -859,7 +861,7 @@ class SqlJoinConditional extends SqlConditional {
   public function __toString() {
     $output = ' ' . strtoupper($this->type);
     if ($this->type == 'using') {
-      $output .= '(' . join(', ', $this->columns) . ')';
+      $output .= ' (' . join(', ', $this->columns) . ')';
     }
     else {
       $output .= ' ' . parent::__toString();

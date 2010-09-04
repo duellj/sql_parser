@@ -246,8 +246,8 @@ class SqlDBTNGConverter extends SqlConverter {
       $this->convertConditionals($this->sql_object->conditional);
     }
 
-    if ($this->sql_object->order_by) {
-      foreach ($this->sql_object->order_by as $order) {
+    if ($this->sql_object->order_by_clauses) {
+      foreach ($this->sql_object->order_by_clauses as $order) {
         $this->output[] = "  ->orderBy('" . $order->column . "', '" . $order->direction . "')";
       }
     }
