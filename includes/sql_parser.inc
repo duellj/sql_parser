@@ -679,7 +679,7 @@ class SqlParser {
       $sql_conditional->setArg2($this->parseSearchClause());
       $sql_conditional->setNot(FALSE);
     }
-    else {
+    elseif (!is_null($this->token)) {
       $this->lexer->unget();
     }
     return $sql_conditional;

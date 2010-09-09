@@ -224,7 +224,7 @@ class SqlLexer {
           $c = $this->get();
 
           // End of string is reached.
-          if (is_NULL($c)) {
+          if (is_null($c)) {
             $state = 1000;
             break;
           }
@@ -490,7 +490,7 @@ class SqlLexer {
                 break;
             }
           }
-          if (!is_NULL($this->tokenText)) {
+          if (!is_null($this->tokenText)) {
             $state = 13;
             break;
           }
@@ -596,6 +596,9 @@ class SqlLexer {
 
         // State 999 : Unknown token.  Revert to single char.
         case 999:
+          if (is_null($c)) {
+            return NULL;
+          }
           $this->revert();
           $this->get();
           $this->setToken();
