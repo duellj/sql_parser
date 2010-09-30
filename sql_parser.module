@@ -11,7 +11,7 @@
  */
 function sql_parser_menu() {
   $items['admin/config/development/sql-parser'] = array(
-    'title' => 'SQL Parser',
+    'title' => 'SQL parser',
     'description' => 'Parse SQL strings and convert to Drupal DBTNG objects.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('sql_parser_parser_form'),

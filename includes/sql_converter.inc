@@ -419,10 +419,12 @@ class SqlDBTNGConverter extends SqlConverter {
           $closing_parenthesis = TRUE;
         }
         break;
+
       case 'or':
         $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_or()";
         $closing_parenthesis = TRUE;
         break;
+
       case 'xor':
         $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_xort()";
         $closing_parenthesis = TRUE;
@@ -559,10 +561,12 @@ class SqlDBTNGConverter extends SqlConverter {
           $closing_parenthesis = TRUE;
         }
         break;
+
       case 'or':
         $this->output[] = str_repeat("  ", $level - 1) . "->havingCondition(db_or()";
         $closing_parenthesis = TRUE;
         break;
+
       case 'xor':
         $this->output[] = str_repeat("  ", $level - 1) . "->havingCondition(db_xort()";
         $closing_parenthesis = TRUE;
