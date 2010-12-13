@@ -68,6 +68,9 @@ class SqlConverter {
    *   The SqlConditional object.
    */
   protected function convertConditionalPlaceholders(SqlConditional &$conditional) {
+sdp(__FUNCTION__);
+sdp($conditional, '$conditional');
+    // @todo This is limited to two conditions.
     if ($conditional->arg1 instanceof SqlConditional) {
       $this->convertConditionalPlaceholders($conditional->arg1);
     }
@@ -98,6 +101,8 @@ class SqlConverter {
    *   The new placeholder name.
    */
   protected function convertPlaceholder(SqlField $field) {
+// sdp(__FUNCTION__);
+// sdp($field, '$field');
     if ($field->alias) {
       $name = $field->alias;
     }
@@ -193,7 +198,7 @@ class SqlDBTNGConverter extends SqlConverter {
    */
   protected function convertSelect() {
     // Add first table to db_select() function.
-    $this->output[] = "db_select('" . $this->sql_object->tables[0]->name . "', '" . $this->getTableAlias(0) . "')";
+    $this->output[] = "\$query = db_select('" . $this->sql_object->tables[0]->name . "', '" . $this->getTableAlias(0) . "')";
 
     $this->convertSelectFields();
 
@@ -210,7 +215,7 @@ class SqlDBTNGConverter extends SqlConverter {
         $this->output[] = "  ->groupBy($group_by_column)";
       }
 
-      if ($this->sql_object->having_clause) {
+      if (isset($this->sql_object->having_clause)) { // @todo Why do we need to check isset() on this but not other objects? Where are they defaultly set?
         $this->convertHaving($this->sql_object->having_clause);
       }
     }
@@ -284,18 +289,30 @@ class SqlDBTNGConverter extends SqlConverter {
    * Convert Select query fields.
    */
   protected function convertSelectFields() {
+sdp(__FUNCTION__);
+sdp($this->sql_object->tables, '$this->sql_object->tables');
+sdp($this->sql_object->fields, '$this->sql_object->fields');
+    // Save first table items.
+    $table0 = $this->sql_object->tables[0];
     // Select all fields.
-    if ($this->sql_object->fields[0]->name == '*') {
+    // @todo An asterisk may occur in other parts of the field list with a table qualifier.
+    // Individual fields from a table may be added in addition to an asterisk on that table.
+    if (FALSE && $this->sql_object->fields[0]->name == '*') {
       $this->output[] = "  ->fields()";
     }
     // Select individual fields.
     else {
       // Group fields by table.  If no table is set for a field, then use the first table.
       // If field has an alias, then the field needs to be grouped individually.
-      $table_fields = array();
-      $aliased_fields = array();
+      $all_fields = $table_fields = $aliased_fields = array();
       foreach ($this->sql_object->fields as $id => $field) {
-        if ($field->alias) {
+        if ($field->name == '*') {
+          // If no table is set for a field, then use the first table.
+          $table_alias = $field->table ? $field->table : ($table0->alias ? $table0->alias : $table0->name);
+          // Always add to output in case individual fields from the table are also included.
+          $this->output[] = "  ->fields('$table_alias')";
+        }
+        elseif ($field->alias) {
           $aliased_fields[] = $field;
         }
         else {
@@ -317,11 +334,16 @@ class SqlDBTNGConverter extends SqlConverter {
 
       // Add aliased fields.
       if ($aliased_fields) {
+        // End the current expression as addField() returns a field object not a
+        // select query object.
+        $this->output[count($this->output) - 1] .= ';';
         foreach ($aliased_fields as $field) {
-          if (!($table_alias = $field->table)) {
-            $table_alias = $this->sql_object->tables[0]->alias;
-          }
-          $this->output[] = "  ->addField('$table_alias', '" . $field->name . "', '" . $field->alias . "')";
+//           if (!($table_alias = $field->table)) {
+//             $table_alias = $this->sql_object->tables[0]->alias;
+//           }
+          // If no table is set for a field, then use the first table.
+          $table_alias = $field->table ? $field->table : ($table0->alias ? $table0->alias : $table0->name);
+          $this->output[] = "\$query->addField('$table_alias', '" . $field->name . "', '" . $field->alias . "');";
         }
       }
     }
@@ -346,23 +368,29 @@ class SqlDBTNGConverter extends SqlConverter {
 
   /**
    * Convert table joins.
+   *
+   * As join() returns the unique alias that was assigned for this table, it
+   * must form a separate statement.
    */
   function convertJoins() {
     foreach ($this->sql_object->tables as $key => $table) {
+      // Reset the placeholders.
+      // @todo Does this have side effects on the arguments passed to the function later?
+      $this->placeholders = array();
       // Only convert tables that have a join.
       if ($table->join) {
         switch ($table->join) {
           case 'join':
           case 'inner join':
-            $join_statement = "  ->join(";
+            $join_statement = '$query->join(';
             break;
 
           case 'left join':
-            $join_statement = "  ->leftJoin(";
+            $join_statement = '$query->leftJoin(';
             break;
 
           case 'right join':
-            $join_statement = "  ->rightJoin(";
+            $join_statement = '$query->rightJoin(';
             break;
         }
         $right_table_alias = $this->getTableAlias($key);
@@ -375,6 +403,7 @@ class SqlDBTNGConverter extends SqlConverter {
         if ($table->join_conditional->type == 'using') {
           $join_conditions = array();
           foreach ($table->join_conditional->columns as $column) {
+            // @todo Are the left and right column names always the same (in this code anyhow)?
             $join_conditions[] = $left_table_alias . '.' . $column . ' = ' . $right_table_alias . '.' . $column;
           }
           $join_statement .= "'" . join(' AND ', $join_conditions) . "'";
@@ -393,7 +422,7 @@ class SqlDBTNGConverter extends SqlConverter {
           }
         }
 
-        $join_statement .= ")";
+        $join_statement .= ");";
 
         $this->output[] = $join_statement;
       }
@@ -410,6 +439,9 @@ class SqlDBTNGConverter extends SqlConverter {
    */
   protected function convertConditionals(SqlConditional $conditional, $level = 1) {
     $closing_parenthesis = FALSE;
+
+    // Start the statement (@todo only if previous expressions required separate statements).
+    $this->output[] = '$query';
 
     // Convert operator.
     switch ($conditional->operator) {

@@ -28,14 +28,29 @@ function sql_parser_parser_form($form, &$form_state) {
   if (isset($form_state['input']['sql'])) {
     $parsed_sql = sql_parser_parse($form_state['input']['sql']);
     if ($parsed_sql) {
-      $raw_query_string = (string) $parsed_sql;
+//       $raw_query_string = (string) $parsed_sql; // @todo Not all objects have _toString() defined.
       $dbtng_query_string = sql_parser_convert_dbtng($parsed_sql);
     }
     drupal_set_message('Peak memory usage = ' . number_format(memory_get_peak_usage(TRUE), 0, '.', ',') . " bytes");
   }
+  // Move button here while testing.
+  $form['submit'] = array(
+    '#type' => 'button',
+    '#value' => t('Convert'),
+  );
+  $form['output'] = array(
+    '#title' => 'Database object syntax',
+    '#type' => 'textarea',
+    '#rows' => min(35, max(15, isset($dbtng_query_string) ? count(explode("\n", $dbtng_query_string)) : 0)), // @todo For testing.
+    '#attributes' => array(
+      'readonly' => 'readonly',
+    ),
+    '#value' => isset($dbtng_query_string) ? $dbtng_query_string : '',
+  );
   $form['sql'] = array(
     '#title' => 'Original SQL string',
     '#type' => 'textarea',
+    '#rows' => 15, // @todo For testing.
     '#default_value' => isset($form_state['input']['sql']) ? $form_state['input']['sql'] : '',
   );
 //   $form['parsed_sql'] = array(
@@ -46,19 +61,6 @@ function sql_parser_parser_form($form, &$form_state) {
 //     ),
 //     '#value' => isset($raw_query_string) ? $raw_query_string : '',
 //   );
-  $form['output'] = array(
-    '#title' => 'Database object syntax',
-    '#type' => 'textarea',
-    '#rows' => 10,
-    '#attributes' => array(
-      'readonly' => 'readonly',
-    ),
-    '#value' => isset($dbtng_query_string) ? $dbtng_query_string : '',
-  );
-  $form['submit'] = array(
-    '#type' => 'button',
-    '#value' => t('Convert'),
-  );
   return $form;
 }
 

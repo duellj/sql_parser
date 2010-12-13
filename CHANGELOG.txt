@@ -1,0 +1,18 @@
+// $Id: CHANGELOG.txt,v 1.0 2010/12/13 07:00:00 solotandem Exp $
+
+sql_parser 7.x-1.x, 2010-xx-xx (development version)
+------------------------------
+- TODO (2010-xx-xx):
+  * sql_converter
+  * - Create tests with known output for known input
+  * - Allow for more than two conditional expressions on a JOIN
+  * - Add _toString() method for SqlGroupByClause
+  * - Handle presence or absence of each type of clause in adding '$query' to output
+  * - Pass extenders to parser
+
+- Changes (2010-12-13):
+  * sql_converter
+  * - Add $query variable to converted expressions since not all items can be chained together
+  * - Handle selecting all fields from multiple tables: SELECT a.*, b.*, c.field1 FROM ..
+  * - Eliminate reuse of conditional placeholders from prior JOIN when no placeholders on current JOIN
+    - Maintain conditional placeholders separately for different JOIN expressions (SAME AS ABOVE)

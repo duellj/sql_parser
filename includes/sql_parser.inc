@@ -990,10 +990,14 @@ class SqlParser {
 
   /**
    * Parses field into a new field object.
+   * 
+   * @note Handles field expressions in ON and WHERE clauses.
    *
    * @return SqlField
    */
   protected function parseField() {
+sdp(__FUNCTION__);
+sdp($this->lexer->tokenText, '$this->lexer->tokenText');
     if (strpos($this->lexer->tokenText, '.')) {
       list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
     }
@@ -1119,15 +1123,20 @@ class SqlParser {
       $sql_object->setSetIdentifier($this->token);
       $this->getToken();
     }
+sdp(__FUNCTION__);
+sdp($this->lexer->tokenText, '$this->lexer->tokenText');
     if ($this->token == '*') {
       $sql_object->addField($this->token);
       $this->getToken();
     }
     elseif ($this->token == 'identifier' || $this->dialect->isFunc($this->token)) {
       while ($this->token != 'from') {
+sdp(__FUNCTION__);
+sdp($this->lexer->tokenText, '$this->lexer->tokenText');
         if ($this->token == 'identifier') {
           list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
           if (!$columnName) {
+            // @todo This is setting a.*; storing a as columnName
             $columnName = $columnTable;
             $columnTable = '';
           }
@@ -1183,7 +1192,7 @@ class SqlParser {
       }
     }
     else {
-      throw new SqlParserException('Expected columns or a set function', $this->token, $this->lexer);
+      throw new SqlParserException('Expected columns or a [set?] function', $this->token, $this->lexer);
     }
   }
 

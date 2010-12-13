@@ -295,6 +295,7 @@ class SqlLexer {
 
           if ($c == '.') {
             $t = $this->get();
+            sdp($t, '$t get'); // TODO Not hit.
             // Ellipsis.
             if ($t == '.') {
               if ($this->get() == '.') {
@@ -304,6 +305,7 @@ class SqlLexer {
               }
               else {
                 // Unknown token.  Revert to single character.
+                sdp($t, '$t $state = 999');
                 $state = 999;
                 break;
               }
@@ -315,6 +317,7 @@ class SqlLexer {
               break;
             }
             else { // period
+              sdp('unget $t');
               $this->unget();
             }
           }
@@ -354,13 +357,15 @@ class SqlLexer {
           }
 
           // Unknown token.  Revert to single char.
+          sdp($c, '$state = 999');
           $state = 999;
           break;
 
         // State 1 : Incomplete keyword or identifier.
         case 1:
           $c = $this->get();
-          if (ctype_alnum(ord($c)) || in_array($c, array('_', '.', '{' ,'}', '`'))) {
+          // @todo Include the '*' in the expression.
+          if (ctype_alnum(ord($c)) || in_array($c, array('_', '.', '{', '}', '`', '*'))) {
             $state = 1;
             break;
           }
@@ -371,6 +376,7 @@ class SqlLexer {
         case 2:
           $this->unget();
           $this->setToken();
+          sdp($this->tokenText, '$this->tokenText state 2');
 
           // Check if this token is a keyword in the symbols list.
           $testToken = strtolower($this->tokenText);
@@ -599,14 +605,17 @@ class SqlLexer {
           break;
 
         // State 999 : Unknown token.  Revert to single char.
+        // Unknown is an odd categorization. This catches '*', ',', whitespace and return.
         case 999:
           if (is_null($c)) {
             sdp('$c is null');
             return NULL;
           }
           $this->revert();
-          $this->get();
+          $c = $this->get();
+          sdp($c, '$c');
           $this->setToken();
+          sdp($this->tokenText, '$this->tokenText in case 999');
           return $this->tokenText;
 
         // State 1000 : End Of Input.
