@@ -226,6 +226,7 @@ class SqlLexer {
           // End of string is reached.
           if (is_null($c)) {
             $state = 1000;
+            sdp('end of string');
             break;
           }
 
@@ -234,7 +235,9 @@ class SqlLexer {
             if ($c == "\n" || $c == "\r") {
               // Handles MAC/Unix/Windows line endings for multiline sql strings.
               if ($c == "\r") {
+                sdp('carriage return is ascii ' . ord($c));
                 $c = $this->skip();
+                sdp('next char is ascii ' . ord($c));
 
                 // If not DOS newline
                 if ($c != "\n") {
@@ -245,6 +248,7 @@ class SqlLexer {
               $this->lineBegin = $this->tokenPointer;
             }
             $c = $this->skip();
+            sdp('next char is ascii ' . ord($c));
             $this->tokenLength = 1;
           }
 
@@ -597,6 +601,7 @@ class SqlLexer {
         // State 999 : Unknown token.  Revert to single char.
         case 999:
           if (is_null($c)) {
+            sdp('$c is null');
             return NULL;
           }
           $this->revert();
@@ -606,6 +611,7 @@ class SqlLexer {
 
         // State 1000 : End Of Input.
         case 1000:
+          sdp('end of input');
           $this->tokenText = '*end of input*';
           $this->skipText = substr($this->sql_string, $this->tokenAbsStart, $this->tokenStart - $this->tokenAbsStart);
           $this->tokenStart = $this->tokenPointer;

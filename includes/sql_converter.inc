@@ -380,7 +380,7 @@ class SqlDBTNGConverter extends SqlConverter {
           $join_statement .= "'" . join(' AND ', $join_conditions) . "'";
         }
         else {
-          // Convert any placeholders and literlas in the join conditional 
+          // Convert any placeholders and literals in the join conditional 
           // statement to Drupal 7 placeholders.  This will set the 
           // $this->placeholders array with the new placeholders, which can then 
           // be used to generate the arguments array.
@@ -426,7 +426,7 @@ class SqlDBTNGConverter extends SqlConverter {
         break;
 
       case 'xor':
-        $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_xort()";
+        $this->output[] = str_repeat("  ", $level - 1) . "->condition(db_xor()";
         $closing_parenthesis = TRUE;
         break;
     }

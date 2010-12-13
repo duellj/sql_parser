@@ -11,7 +11,7 @@
  */
 function sql_parser_menu() {
   $items['admin/config/development/sql-parser'] = array(
-    'title' => 'SQL parser',
+    'title' => 'SQL Parser',
     'description' => 'Parse SQL strings and convert to Drupal DBTNG objects.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('sql_parser_parser_form'),
@@ -31,20 +31,21 @@ function sql_parser_parser_form($form, &$form_state) {
       $raw_query_string = (string) $parsed_sql;
       $dbtng_query_string = sql_parser_convert_dbtng($parsed_sql);
     }
+    drupal_set_message('Peak memory usage = ' . number_format(memory_get_peak_usage(TRUE), 0, '.', ',') . " bytes");
   }
   $form['sql'] = array(
     '#title' => 'Original SQL string',
     '#type' => 'textarea',
     '#default_value' => isset($form_state['input']['sql']) ? $form_state['input']['sql'] : '',
   );
-  $form['parsed_sql'] = array(
-    '#title' => 'Parsed SQL string',
-    '#type' => 'textarea',
-    '#attributes' => array(
-      'readonly' => 'readonly',
-    ),
-    '#value' => isset($raw_query_string) ? $raw_query_string : '',
-  );
+//   $form['parsed_sql'] = array(
+//     '#title' => 'Parsed SQL string',
+//     '#type' => 'textarea',
+//     '#attributes' => array(
+//       'readonly' => 'readonly',
+//     ),
+//     '#value' => isset($raw_query_string) ? $raw_query_string : '',
+//   );
   $form['output'] = array(
     '#title' => 'Database object syntax',
     '#type' => 'textarea',
@@ -113,6 +114,8 @@ function sql_parser_parse($sql) {
  *   Converted DBTNG string.
  */
 function sql_parser_convert_dbtng(SqlObject $parsed_sql) {
+sdp(__FUNCTION__);
+sdp($parsed_sql, '$parsed_sql');
   $converter = new SqlDBTNGConverter($parsed_sql);
   return $converter->convert();
 }

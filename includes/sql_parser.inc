@@ -140,6 +140,7 @@ class SqlParser {
     }
     if ($sql_object) {
       $sql_object->placeholders = $this->placeholders;
+      sdp(print_r($sql_object, 1), '$sql_object');
       return $sql_object;
     }
   }
@@ -200,7 +201,12 @@ class SqlParser {
           break;
 
         case 'group':
-          $group_by = &$sql_object->addGroupBy();
+          // @todo Certain clauses should not restrict tokens to non-reserved words (e.g. module, count)
+          // This includes table and column alias expressions, and GROUP BY and ORDER BY clauses which
+          // can refer to the column aliases.
+          // Table names may not be used in an ON clause of a JOIN, or GROUP BY and ORDER BY clauses.
+          // Column aliases may not be used in an ON clause of a JOIN or a WHERE clause.
+          $group_by = /*&*/$sql_object->addGroupBy(); // @todo Remove '&' from before function calls
           $this->getToken();
           if ($this->token != 'by') {
             throw new SqlParserException('Expected "by"', $this->token, $this->lexer);
@@ -226,6 +232,8 @@ class SqlParser {
           continue;
 
         default:
+          sdp("'" . ord($this->token) . "'", 'ord($this->token)');
+          is_null($this->token) ? sdp('token is null') : sdp('token is NOT null');
           throw new SqlParserException('Unexpected clause', $this->token, $this->lexer);
       }
     }
@@ -691,7 +699,11 @@ class SqlParser {
       $sql_conditional->setNot(FALSE);
     }
     elseif (!is_null($this->token)) {
+      sdp('$this->lexer->unget()');
       $this->lexer->unget();
+    }
+    else {
+      sdp('is null in conditional');
     }
     return $sql_conditional;
   }
@@ -1078,7 +1090,9 @@ class SqlParser {
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-        throw new SqlParserException('Expected column alias', $this->token, $this->lexer);
+          sdp($this->token, 'token type for alias');
+          sdp($this->lexer->tokenText, 'tokenText for alias');
+        throw new SqlParserException('Expected column alias 1', $this->token, $this->lexer);
       }
     }
     else {
@@ -1086,7 +1100,9 @@ class SqlParser {
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-        throw new SqlParserException('Expected column alias, from or comma', $this->token, $this->lexer);
+          sdp($this->token, 'token type for alias');
+          sdp($this->lexer->tokenText, 'tokenText for alias');
+        throw new SqlParserException('Expected column alias 2, from or comma', $this->token, $this->lexer);
       }
     }
     return $function;
@@ -1121,12 +1137,15 @@ class SqlParser {
           $this->getToken();
           if ($this->token == 'as') {
             $this->getToken();
-            if ($this->token == 'identifier' ) {
-              $columnAlias = $this->lexer->tokenText;
-            }
-            else {
-              throw new SqlParserException('Expected column alias', $this->token, $this->lexer);
-            }
+//             if ($this->token == 'identifier' ) {
+//               $columnAlias = $this->lexer->tokenText;
+//             }
+//             else {
+//           sdp($this->token, 'token type for alias');
+//           sdp($this->lexer->tokenText, 'tokenText for alias');
+//               throw new SqlParserException('Expected column alias 3', $this->token, $this->lexer);
+//             }
+            $columnAlias = $this->lexer->tokenText;
           }
           elseif ($this->token == 'identifier') {
             $columnAlias = $this->lexer->tokenText;
@@ -1265,6 +1284,8 @@ class SqlParser {
           $table->setAlias($this->lexer->tokenText);
         }
         else {
+          sdp($this->token, 'token type for alias');
+          sdp($this->lexer->tokenText, 'tokenText for alias');
           throw new SqlParserException('Expected table alias', $this->token, $this->lexer);
         }
         $this->getToken();
