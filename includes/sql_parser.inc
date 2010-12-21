@@ -996,8 +996,9 @@ class SqlParser {
    * @return SqlField
    */
   protected function parseField() {
-sdp(__FUNCTION__);
-sdp($this->lexer->tokenText, '$this->lexer->tokenText');
+    sdp(__FUNCTION__);
+    sdp($this->lexer->tokenText, '$this->lexer->tokenText');
+
     if (strpos($this->lexer->tokenText, '.')) {
       list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
     }
@@ -1094,8 +1095,8 @@ sdp($this->lexer->tokenText, '$this->lexer->tokenText');
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-          sdp($this->token, 'token type for alias');
-          sdp($this->lexer->tokenText, 'tokenText for alias');
+        sdp($this->token, 'token type for alias');
+        sdp($this->lexer->tokenText, 'tokenText for alias');
         throw new SqlParserException('Expected column alias 1', $this->token, $this->lexer);
       }
     }
@@ -1104,8 +1105,8 @@ sdp($this->lexer->tokenText, '$this->lexer->tokenText');
         $function->setAlias($this->lexer->tokenText);
       }
       else {
-          sdp($this->token, 'token type for alias');
-          sdp($this->lexer->tokenText, 'tokenText for alias');
+        sdp($this->token, 'token type for alias');
+        sdp($this->lexer->tokenText, 'tokenText for alias');
         throw new SqlParserException('Expected column alias 2, from or comma', $this->token, $this->lexer);
       }
     }
@@ -1123,16 +1124,16 @@ sdp($this->lexer->tokenText, '$this->lexer->tokenText');
       $sql_object->setSetIdentifier($this->token);
       $this->getToken();
     }
-sdp(__FUNCTION__);
-sdp($this->lexer->tokenText, '$this->lexer->tokenText');
+    sdp(__FUNCTION__);
+    sdp($this->lexer->tokenText, '$this->lexer->tokenText');
     if ($this->token == '*') {
       $sql_object->addField($this->token);
       $this->getToken();
     }
     elseif ($this->token == 'identifier' || $this->dialect->isFunc($this->token)) {
       while ($this->token != 'from') {
-sdp(__FUNCTION__);
-sdp($this->lexer->tokenText, '$this->lexer->tokenText');
+        sdp(__FUNCTION__);
+        sdp($this->lexer->tokenText, '$this->lexer->tokenText');
         if ($this->token == 'identifier') {
           list($columnTable, $columnName) = explode(".", $this->lexer->tokenText . '.');
           if (!$columnName) {
@@ -1146,14 +1147,6 @@ sdp($this->lexer->tokenText, '$this->lexer->tokenText');
           $this->getToken();
           if ($this->token == 'as') {
             $this->getToken();
-//             if ($this->token == 'identifier' ) {
-//               $columnAlias = $this->lexer->tokenText;
-//             }
-//             else {
-//           sdp($this->token, 'token type for alias');
-//           sdp($this->lexer->tokenText, 'tokenText for alias');
-//               throw new SqlParserException('Expected column alias 3', $this->token, $this->lexer);
-//             }
             $columnAlias = $this->lexer->tokenText;
           }
           elseif ($this->token == 'identifier') {

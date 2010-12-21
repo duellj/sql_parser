@@ -68,8 +68,9 @@ class SqlConverter {
    *   The SqlConditional object.
    */
   protected function convertConditionalPlaceholders(SqlConditional &$conditional) {
-sdp(__FUNCTION__);
-sdp($conditional, '$conditional');
+    sdp(__FUNCTION__);
+    sdp($conditional, '$conditional');
+
     // @todo This is limited to two conditions.
     if ($conditional->arg1 instanceof SqlConditional) {
       $this->convertConditionalPlaceholders($conditional->arg1);
@@ -101,8 +102,6 @@ sdp($conditional, '$conditional');
    *   The new placeholder name.
    */
   protected function convertPlaceholder(SqlField $field) {
-// sdp(__FUNCTION__);
-// sdp($field, '$field');
     if ($field->alias) {
       $name = $field->alias;
     }
@@ -289,9 +288,10 @@ class SqlDBTNGConverter extends SqlConverter {
    * Convert Select query fields.
    */
   protected function convertSelectFields() {
-sdp(__FUNCTION__);
-sdp($this->sql_object->tables, '$this->sql_object->tables');
-sdp($this->sql_object->fields, '$this->sql_object->fields');
+    sdp(__FUNCTION__);
+    sdp($this->sql_object->tables, '$this->sql_object->tables');
+    sdp($this->sql_object->fields, '$this->sql_object->fields');
+
     // Save first table items.
     $table0 = $this->sql_object->tables[0];
     // Select all fields.
@@ -338,9 +338,6 @@ sdp($this->sql_object->fields, '$this->sql_object->fields');
         // select query object.
         $this->output[count($this->output) - 1] .= ';';
         foreach ($aliased_fields as $field) {
-//           if (!($table_alias = $field->table)) {
-//             $table_alias = $this->sql_object->tables[0]->alias;
-//           }
           // If no table is set for a field, then use the first table.
           $table_alias = $field->table ? $field->table : ($table0->alias ? $table0->alias : $table0->name);
           $this->output[] = "\$query->addField('$table_alias', '" . $field->name . "', '" . $field->alias . "');";

@@ -1,4 +1,4 @@
-// $Id: CHANGELOG.txt,v 1.0 2010/12/13 07:00:00 solotandem Exp $
+// $Id$
 
 sql_parser 7.x-1.x, 2010-xx-xx (development version)
 ------------------------------
